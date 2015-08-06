@@ -131,7 +131,7 @@ func parseVersionFromBytes(bytes []byte) (int, error) {
 }
 
 func (a *androidSymbolUploader) getBuildVersion(e *env) (int, error) {
-	var f = func(versionCode int, err error) (int, error) {
+	var handleError = func(versionCode int, err error) (int, error) {
 		if err != nil {
 			return 0, err
 		}
@@ -141,17 +141,11 @@ func (a *androidSymbolUploader) getBuildVersion(e *env) (int, error) {
 		return versionCode, nil
 	}
 
-	var (
-		versionCode int
-		err         error
-	)
 	if a.Manifest != "" {
-		versionCode, err = a.getBuildVersionFromManifest()
+		return handleError(a.getBuildVersionFromManifest())
 	} else {
-		versionCode, err = a.getBuildVersionFromAPK()
+		return handleError(a.getBuildVersionFromAPK())
 	}
-
-	return f(versionCode, err)
 }
 
 func (a *androidSymbolUploader) uploadSymbols(e *env) error {
