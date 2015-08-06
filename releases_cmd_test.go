@@ -55,7 +55,7 @@ func TestReleasesCmdError(t *testing.T) {
 	ensure.NotNil(t, c.run(h.env, &client{}))
 }
 
-func TestReleasesCmdPrintVersin(t *testing.T) {
+func TestReleasesCmdPrintVersion(t *testing.T) {
 	h, r := newReleasesCmdHarness(t)
 	releases := []releasesResponse{
 		{Version: "v1",
@@ -67,6 +67,12 @@ func TestReleasesCmdPrintVersin(t *testing.T) {
 			UserFiles: `{
 			"cloud": {"main.js": "2", "app.js": "2", "views/docs.js": "1"},
 			"public": {"index.html": "2", "docs.html": "2"}
+			}`,
+		},
+		{Version: "v2",
+			UserFiles: `{
+			"cloud": {"v2_main.js": "2", "v2_app.js": "2", "views/v2_docs.js": "2"},
+			"public": {"v2_index.html": "2", "v2_docs.html": "2"}
 			}`,
 		},
 	}

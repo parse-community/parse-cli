@@ -46,6 +46,7 @@ func (r *releasesCmd) printFiles(version string,
 	for _, release := range releases {
 		if release.Version == version {
 			files = release.UserFiles
+			break
 		}
 	}
 	if files == "" {
