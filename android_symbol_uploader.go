@@ -143,9 +143,9 @@ func (a *androidSymbolUploader) getBuildVersion(e *env) (int, error) {
 
 	if a.Manifest != "" {
 		return handleError(a.getBuildVersionFromManifest())
-	} else {
-		return handleError(a.getBuildVersionFromAPK())
 	}
+
+	return handleError(a.getBuildVersionFromAPK())
 }
 
 func (a *androidSymbolUploader) uploadSymbols(e *env) error {
