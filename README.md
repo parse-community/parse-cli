@@ -1,5 +1,6 @@
 Parse Command Line Tool
 =======
+[![Build Status](https://travis-ci.org/ParsePlatform/parse-cli.svg?branch=master)](https://travis-ci.org/ParsePlatform/parse-cli)
 
 The `Parse Command Line Tool` allows you to interact with your Cloud Code from the terminal.
 
