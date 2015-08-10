@@ -1,0 +1,27 @@
+language: go
+go:
+- 1.4.2
+script: go test
+before_deploy:
+- go get github.com/mitchellh/gox
+- gox -osarch="darwin/amd64" -osarch="linux/arm" -osarch="linux/386" -osarch="windows/386"
+  -build-toolchain
+- gox -osarch="darwin/amd64" -osarch="linux/arm" -osarch="linux/386" -osarch="windows/386"
+  -output="parse_{{.OS}}_{{.Arch}}"
+- mv parse_darwin_amd64 parse
+- mv parse_windows_386.exe parse.exe
+- mv parse_linux_386 parse_linux
+deploy:
+  provider: releases
+  api_key:
+    secure: ZnquaugjmlJ6geWvXCVjZeN2Z1NZyOaNWbY1hY8LAZZR+QqlRUR+6+QZ85vHYnqHAqKHDoh8BcZUR+2hK9UV2Lqsq0aTzvuxxVIKFiF1Gc3eC6zK3FUPgk9eOnxPZM1REGM7/i977HckpNVirskdHK1esdkKOYIfLQaHW75+xZYNJ/RKUceVrrT99IlOLWH+52vd/xGY3osV65FWkF8QS8LsZrqDQlrGyeht/P5YxepkyvMxGhBs7O3j5Npldmvdce5AQttY4MXQkMXkIrbQ2u4auBtw94hn9POd2msO0pq9JF76Is3FsH4B0/3AUrWkxMHV5XAwK1ziXniVKqQeIzaPadV92r8ihySYOQABCfQgQrHaH03jG+zE4CqqxbQvVUCCoszTZRg0AFAbaYeTKngN8kaaEEiJrKsmEASHfc8cql2TYH9Tr+ZvF/dxyYiBDU/i+BjJ4Y5jpoyXrUFeeLKRSSN4WGYYaC0r4aCBNcVDQFo9sd0n1lUtznc6wtg671Qgrvq/aog7I4qJKYBeJ/OGm771IboPxLob3P5hBdMZwOFPbjFsOmMhyBvYwxBJz3SJfVW/+pCCQdfqbfHSB0ZawdeRBQdm3w24hvq5wdpk5nGTdbdCbxb/9LsVd1WuU4xE8PiTpXxn1WqiYEcVjFd2NtYkBtFliAvnEKax+Ew=
+  file:
+    - parse
+    - parse.exe
+    - parse_linux
+    - parse_linux_arm
+  skip_cleanup: true
+  on:
+    repo: ParsePlatform/parse-cli
+    tags: true
+    condition: $TRAVIS_TAG =~ ^release_.*
