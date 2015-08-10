@@ -188,7 +188,7 @@ func (n *newCmd) shouldCreateNewApp(e *env) string {
 	var decision string
 	fmt.Fprintf(e.Out,
 		`Would you like to create a new app, or add Cloud Code to an existing app?
-Type "new" or "existing": `)
+Type "(n)ew" or "(e)xisting": `)
 	fmt.Fscanf(e.In, "%s\n", &decision)
 	return strings.ToLower(decision)
 }
@@ -249,24 +249,21 @@ func (n *newCmd) run(e *env) error {
 		app *app
 		err error
 	)
-	decision := n.shouldCreateNewApp(e)
-	if decision != "new" && decision != "existing" {
-		return errors.New("`new` and `existing` are the only valid options")
-	}
-
 	isNew := false
-	switch decision {
-	case "new":
+	switch n.shouldCreateNewApp(e) {
+	case "new", "n":
 		isNew = true
 		app, err = apps.createApp(e)
 		if err != nil {
 			return err
 		}
-	case "existing":
+	case "existing", "e":
 		app, err = addCmd.selectApp(e)
 		if err != nil {
 			return err
 		}
+	default:
+		return errors.New("`new` and `existing` are the only valid options")
 	}
 
 	if err := n.setupSample(e, app, isNew); err != nil {
