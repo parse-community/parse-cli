@@ -1,16 +1,15 @@
 language: go
 go:
-- 1.4.2
-script: go test
+  - 1.4.2
+script:
+  - go test -v ./...
 before_deploy:
-- go get github.com/mitchellh/gox
-- gox -osarch="darwin/amd64" -osarch="linux/arm" -osarch="linux/386" -osarch="windows/386"
-  -build-toolchain
-- gox -osarch="darwin/amd64" -osarch="linux/arm" -osarch="linux/386" -osarch="windows/386"
-  -output="parse_{{.OS}}_{{.Arch}}"
-- mv parse_darwin_amd64 parse
-- mv parse_windows_386.exe parse.exe
-- mv parse_linux_386 parse_linux
+  - go get github.com/mitchellh/gox
+  - gox -osarch="darwin/amd64" -osarch="linux/arm" -osarch="linux/386" -osarch="windows/386" -build-toolchain
+  - gox -osarch="darwin/amd64" -osarch="linux/arm" -osarch="linux/386" -osarch="windows/386" -output="parse_{{.OS}}_{{.Arch}}"
+  - mv parse_darwin_amd64 parse
+  - mv parse_windows_386.exe parse.exe
+  - mv parse_linux_386 parse_linux
 deploy:
   provider: releases
   api_key:
