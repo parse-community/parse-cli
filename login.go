@@ -12,7 +12,6 @@ import (
 	"github.com/facebookgo/stackerr"
 	"github.com/mitchellh/go-homedir"
 	"github.com/skratchdot/open-golang/open"
-	"github.com/spf13/cobra"
 )
 
 type credentials struct {
@@ -21,7 +20,7 @@ type credentials struct {
 	token    string
 }
 
-type loginCmd struct {
+type login struct {
 	credentials credentials
 	tokenReader io.Reader
 }
@@ -35,7 +34,7 @@ to reset your password`)
 	parseNetrc = filepath.Join(".parse", "netrc")
 )
 
-func (l *loginCmd) populateCreds(e *env) error {
+func (l *login) populateCreds(e *env) error {
 	if l.credentials.email != "" && l.credentials.password != "" {
 		return nil
 	}
@@ -63,7 +62,7 @@ func (l *loginCmd) populateCreds(e *env) error {
 	return nil
 }
 
-func (l *loginCmd) getTokensReader() (io.Reader, error) {
+func (l *login) getTokensReader() (io.Reader, error) {
 	if l.tokenReader != nil {
 		return l.tokenReader, nil
 	}
@@ -80,7 +79,7 @@ func (l *loginCmd) getTokensReader() (io.Reader, error) {
 	return file, nil
 }
 
-func (l *loginCmd) getTokenCredentials(e *env) (*credentials, error) {
+func (l *login) getTokenCredentials(e *env) (*credentials, error) {
 	reader, err := l.getTokensReader()
 	if err != nil {
 		return nil, stackerr.Wrap(err)
@@ -103,7 +102,7 @@ func (l *loginCmd) getTokenCredentials(e *env) (*credentials, error) {
 	}, nil
 }
 
-func (l *loginCmd) updatedNetrcContent(
+func (l *login) updatedNetrcContent(
 	e *env,
 	content io.Reader,
 	credentials *credentials,
@@ -132,7 +131,7 @@ func (l *loginCmd) updatedNetrcContent(
 	return updatedContent, nil
 }
 
-func (l *loginCmd) storeCredentials(e *env, credentials *credentials) error {
+func (l *login) storeCredentials(e *env, credentials *credentials) error {
 	if l.tokenReader != nil {
 		// tests should not store credentials
 		return nil
@@ -158,14 +157,14 @@ func (l *loginCmd) storeCredentials(e *env, credentials *credentials) error {
 	return stackerr.Wrap(err)
 }
 
-func (l *loginCmd) authUserWithToken(e *env) error {
+func (l *login) authUserWithToken(e *env) error {
 	tokenCredentials, err := l.getTokenCredentials(e)
 
 	if err != nil {
 		return err
 	}
 
-	apps := &apps{login: loginCmd{credentials: *tokenCredentials}}
+	apps := &apps{login: login{credentials: *tokenCredentials}}
 	_, err = apps.restFetchApps(e)
 	if err == errAuth {
 		fmt.Fprintf(e.Err,
@@ -184,7 +183,7 @@ please type "parse login" and provide a valid token for the email.
 	return nil
 }
 
-func (l *loginCmd) authUser(e *env) error {
+func (l *login) authUser(e *env) error {
 	if l.authUserWithToken(e) == nil {
 		return nil
 	}
@@ -215,7 +214,7 @@ func (l *loginCmd) authUser(e *env) error {
 	return errAuth
 }
 
-func (l *loginCmd) helpCreateToken(e *env) {
+func (l *login) helpCreateToken(e *env) {
 	var shouldOpen string
 	fmt.Fscanf(e.In, "%s\n", &shouldOpen)
 	if shouldOpen == "n" {
@@ -235,7 +234,7 @@ Please open %q in the browser to create a new account key.
 
 const keysURL = "https://www.parse.com/account/keys"
 
-func (l *loginCmd) run(e *env) error {
+func (l *login) run(e *env) error {
 	fmt.Fprintf(e.Out,
 		`Please enter the email id you used to register with Parse
 and an account key if you already generated it.
@@ -250,7 +249,7 @@ please type: "y" to open the browser or "n" to continue: `,
 	fmt.Fprintf(e.Out, "Account Key: ")
 	fmt.Fscanf(e.In, "%s\n", &credentials.token)
 
-	_, err := (&apps{login: loginCmd{credentials: credentials}}).restFetchApps(e)
+	_, err := (&apps{login: login{credentials: credentials}}).restFetchApps(e)
 	if err != nil {
 		if err == errAuth {
 			fmt.Fprintf(e.Err, `Sorry, we do not have a user with this email and account key.
@@ -269,14 +268,4 @@ Please follow instructions at %s to generate a new account key.
 		fmt.Fprintln(e.Out, "Successfully stored credentials.")
 	}
 	return stackerr.Wrap(err)
-}
-
-func newLoginCmd(e *env) *cobra.Command {
-	l := &loginCmd{}
-	return &cobra.Command{
-		Use:   "login",
-		Short: "Login with your Parse credentials",
-		Long:  `Login with your parse user name and an account key.`,
-		Run:   runNoArgs(e, l.run),
-	}
 }

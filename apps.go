@@ -34,7 +34,7 @@ type app struct {
 }
 
 type apps struct {
-	login loginCmd
+	login login
 }
 
 const numRetries = 3
@@ -91,7 +91,7 @@ func getAuthHeaders(credentials *credentials, headers http.Header) http.Header {
 }
 
 func fetchAppKeys(e *env, appID string) (*app, error) {
-	l := &loginCmd{}
+	l := &login{}
 	err := l.authUser(e)
 	if err != nil {
 		return nil, err

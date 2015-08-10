@@ -15,7 +15,7 @@ func TestPopulateCreds(t *testing.T) {
 	h := newHarness(t)
 	defer h.Stop()
 
-	l := &loginCmd{}
+	l := &login{}
 	h.env.In = strings.NewReader("email\npassword\n")
 	ensure.Nil(t, l.populateCreds(h.env))
 	ensure.DeepEqual(t, l.credentials.email, "email")
@@ -28,7 +28,7 @@ func TestGetTokenCredentials(t *testing.T) {
 	h := newHarness(t)
 	defer h.Stop()
 
-	l := &loginCmd{}
+	l := &login{}
 	h.env.Server = "http://api.example.com/1/"
 
 	l.tokenReader = strings.NewReader(
@@ -53,7 +53,7 @@ func TestAuthUserWithToken(t *testing.T) {
 	h, _ := newAppHarness(t)
 	defer h.Stop()
 
-	l := &loginCmd{}
+	l := &login{}
 	h.env.Server = "http://api.example.org/1/"
 
 	l.tokenReader = strings.NewReader(
@@ -71,7 +71,7 @@ func TestUpdatedNetrcContent(t *testing.T) {
 	h := newHarness(t)
 	defer h.Stop()
 
-	l := &loginCmd{}
+	l := &login{}
 
 	h.env.Server = "https://api.example.com/1/"
 	updated, err := l.updatedNetrcContent(h.env,
@@ -131,7 +131,7 @@ func TestLogin(t *testing.T) {
 	h, _ := newAppHarness(t)
 	defer h.Stop()
 
-	l := &loginCmd{tokenReader: strings.NewReader("")}
+	l := &login{tokenReader: strings.NewReader("")}
 
 	h.env.In = ioutil.NopCloser(strings.NewReader("n\nemail\ntoken\n"))
 	ensure.Nil(t, l.run(h.env))

@@ -18,8 +18,8 @@ import (
 var (
 	defaultCredentials      = credentials{email: "email", password: "password"}
 	defaultTokenCredentials = credentials{email: "email", token: "token"}
-	defaultApps             = apps{login: loginCmd{credentials: defaultCredentials}}
-	defaultAppsWithToken    = apps{login: loginCmd{credentials: defaultTokenCredentials}}
+	defaultApps             = apps{login: login{credentials: defaultCredentials}}
+	defaultAppsWithToken    = apps{login: login{credentials: defaultTokenCredentials}}
 )
 
 func newTestApp(suffix string) *app {
