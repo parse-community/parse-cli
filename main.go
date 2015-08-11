@@ -280,6 +280,7 @@ http://parse.com`,
 	}
 
 	c.AddCommand(newAddCmd(e))
+	c.AddCommand(newConfigureCmd(e))
 	c.AddCommand(newDefaultCmd(e))
 	c.AddCommand(newDeployCmd(e))
 	c.AddCommand(newDevelopCmd(e))

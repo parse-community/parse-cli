@@ -14,6 +14,8 @@ import (
 	"github.com/skratchdot/open-golang/open"
 )
 
+const keysURL = "https://www.parse.com/account/account_keys"
+
 type credentials struct {
 	email    string
 	password string
@@ -230,42 +232,4 @@ Please open %q in the browser to create a new account key.
 			keysURL,
 		)
 	}
-}
-
-const keysURL = "https://www.parse.com/account/keys"
-
-func (l *login) run(e *env) error {
-	fmt.Fprintf(e.Out,
-		`Please enter the email id you used to register with Parse
-and an account key if you already generated it.
-If you do not have an account key or would like to generate a new one,
-please type: "y" to open the browser or "n" to continue: `,
-	)
-	l.helpCreateToken(e)
-
-	var credentials credentials
-	fmt.Fprintf(e.Out, "Email: ")
-	fmt.Fscanf(e.In, "%s\n", &credentials.email)
-	fmt.Fprintf(e.Out, "Account Key: ")
-	fmt.Fscanf(e.In, "%s\n", &credentials.token)
-
-	_, err := (&apps{login: login{credentials: credentials}}).restFetchApps(e)
-	if err != nil {
-		if err == errAuth {
-			fmt.Fprintf(e.Err, `Sorry, we do not have a user with this email and account key.
-Please follow instructions at %s to generate a new account key.
-`,
-				keysURL,
-			)
-		} else {
-			fmt.Fprintf(e.Err, "Unable to validate token with error:\n%s\n", err)
-		}
-		return stackerr.New("Could not store credentials. Please try again.")
-	}
-
-	err = l.storeCredentials(e, &credentials)
-	if err == nil {
-		fmt.Fprintln(e.Out, "Successfully stored credentials.")
-	}
-	return stackerr.Wrap(err)
 }

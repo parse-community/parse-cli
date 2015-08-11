@@ -1,7 +1,6 @@
 package main
 
 import (
-	"io/ioutil"
 	"regexp"
 	"strings"
 	"testing"
@@ -123,31 +122,4 @@ machine api.example.org
 	login email
 	password token`,
 	)
-}
-
-func TestLogin(t *testing.T) {
-	t.Parallel()
-
-	h, _ := newAppHarness(t)
-	defer h.Stop()
-
-	l := &login{tokenReader: strings.NewReader("")}
-
-	h.env.In = ioutil.NopCloser(strings.NewReader("n\nemail\ntoken\n"))
-	ensure.Nil(t, l.run(h.env))
-	ensure.DeepEqual(t,
-		h.Out.String(),
-		`Please enter the email id you used to register with Parse
-and an account key if you already generated it.
-If you do not have an account key or would like to generate a new one,
-please type: "y" to open the browser or "n" to continue: Email: Account Key: Successfully stored credentials.
-`)
-
-	h.env.In = ioutil.NopCloser(strings.NewReader("n\nemail\ninvalid\n"))
-	ensure.Err(t, l.run(h.env), regexp.MustCompile("Please try again"))
-	ensure.DeepEqual(t,
-		h.Err.String(),
-		`Sorry, we do not have a user with this email and account key.
-Please follow instructions at https://www.parse.com/account/keys to generate a new account key.
-`)
 }
