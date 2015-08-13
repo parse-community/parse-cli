@@ -99,7 +99,6 @@ func (l *login) getTokenCredentials(e *env) (*credentials, error) {
 		return nil, stackerr.Newf("could not find token for %s", server)
 	}
 	return &credentials{
-		email: machine.Login,
 		token: machine.Password,
 	}, nil
 }
@@ -120,9 +119,8 @@ func (l *login) updatedNetrcContent(
 	}
 	machine := tokens.FindMachine(server)
 	if machine == nil {
-		machine = tokens.NewMachine(server, credentials.email, credentials.token, "")
+		machine = tokens.NewMachine(server, "default", credentials.token, "")
 	} else {
-		machine.UpdateLogin(credentials.email)
 		machine.UpdatePassword(credentials.token)
 	}
 
@@ -169,12 +167,10 @@ func (l *login) authUserWithToken(e *env) error {
 	apps := &apps{login: login{credentials: *tokenCredentials}}
 	_, err = apps.restFetchApps(e)
 	if err == errAuth {
-		fmt.Fprintf(e.Err,
+		fmt.Fprintln(e.Err,
 			`Sorry, you have an invalid token associated with the email: %q.
 To avoid typing the email and password everytime,
-please type "parse login" and provide a valid token for the email.
-`,
-			tokenCredentials.email,
+please type "parse configure token" and provide a valid access token.`,
 		)
 	}
 	if err != nil {

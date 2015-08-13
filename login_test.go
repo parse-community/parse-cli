@@ -32,13 +32,12 @@ func TestGetTokenCredentials(t *testing.T) {
 
 	l.tokenReader = strings.NewReader(
 		`machine api.example.com
-			login email
+			login default
 			password token
 		`,
 	)
 	credentials, err := l.getTokenCredentials(h.env)
 	ensure.Nil(t, err)
-	ensure.DeepEqual(t, credentials.email, "email")
 	ensure.DeepEqual(t, credentials.token, "token")
 
 	h.env.Server = "http://api.parse.com"
@@ -76,26 +75,26 @@ func TestUpdatedNetrcContent(t *testing.T) {
 	updated, err := l.updatedNetrcContent(h.env,
 		strings.NewReader(
 			`machine api.example.com
-  login email
+  login default
   password token0
 
 machine  api.example.org
-  login email
+  login default
   password token
 `,
 		),
-		&credentials{email: "email", token: "token"},
+		&credentials{token: "token"},
 	)
 
 	ensure.Nil(t, err)
 	ensure.DeepEqual(t,
 		string(updated),
 		`machine api.example.com
-  login email
+  login default
   password token
 
 machine  api.example.org
-  login email
+  login default
   password token
 `,
 	)
@@ -104,22 +103,22 @@ machine  api.example.org
 	updated, err = l.updatedNetrcContent(h.env,
 		strings.NewReader(
 			`machine api.example.com
-	login email
+	login default
 	password token
 `,
 		),
-		&credentials{email: "email", token: "token"},
+		&credentials{token: "token"},
 	)
 
 	ensure.Nil(t, err)
 	ensure.DeepEqual(t,
 		string(updated),
 		`machine api.example.com
-	login email
+	login default
 	password token
 
 machine api.example.org
-	login email
+	login default
 	password token`,
 	)
 }

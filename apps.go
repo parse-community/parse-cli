@@ -81,10 +81,10 @@ func getAuthHeaders(credentials *credentials, headers http.Header) http.Header {
 	if headers == nil {
 		headers = make(http.Header)
 	}
-	headers.Add("X-Parse-Email", credentials.email)
 	if credentials.token != "" {
 		headers.Add("X-Parse-Account-Key", credentials.token)
 	} else {
+		headers.Add("X-Parse-Email", credentials.email)
 		headers.Add("X-Parse-Password", credentials.password)
 	}
 	return headers
