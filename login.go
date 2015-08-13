@@ -14,7 +14,7 @@ import (
 	"github.com/skratchdot/open-golang/open"
 )
 
-const keysURL = "https://www.parse.com/account/account_keys"
+const keysURL = "https://www.parse.com/account_keys"
 
 type credentials struct {
 	email    string

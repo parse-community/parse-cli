@@ -31,6 +31,6 @@ please type: "y" to open the browser or "n" to continue: Email: Account Key: Suc
 	ensure.DeepEqual(t,
 		h.Err.String(),
 		`Sorry, we do not have a user with this email and access token.
-Please follow instructions at https://www.parse.com/account/account_keys to generate a new access token.
+Please follow instructions at https://www.parse.com/account_keys to generate a new access token.
 `)
 }
