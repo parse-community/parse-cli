@@ -14,6 +14,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/facebookgo/errgroup"
 	"github.com/facebookgo/jsonpipe"
@@ -32,6 +33,7 @@ type deployCmd struct {
 	Force       bool
 	Verbose     bool
 	Retries     int
+	wait        func(int) time.Duration
 }
 
 func (d *deployCmd) getSourceFiles(
@@ -463,34 +465,75 @@ func (d *deployCmd) deploy(
 	}, nil
 }
 
-func (d *deployCmd) run(e *env, c *client) error {
-	first := true
-	for i := 0; i < d.Retries; i++ {
-		if !first {
-			fmt.Fprintf(e.Err, "Deploy failed. Retrying deploy...\n\n")
+func (d *deployCmd) handleError(
+	n int,
+	err, prevErr error,
+	e *env,
+) error {
+	if err == nil {
+		return nil
+	}
+	if n == d.Retries-1 {
+		return err
+	}
+
+	var waitTime time.Duration
+	if d.wait != nil {
+		waitTime = d.wait(n)
+	}
+
+	errStr := errorString(e, err)
+	if prevErr != nil {
+		prevErrStr := errorString(e, prevErr)
+		if prevErrStr == errStr {
+			fmt.Fprintf(
+				e.Err,
+				"Sorry, deploy failed again with same error.\nWill retry in %d seconds.\n\n",
+				waitTime/time.Second,
+			)
+			time.Sleep(waitTime)
+			return nil
 		}
-		config := c.Config
-		parseVersion := config.getProjectConfig().Parse.JSSDK
+	}
+
+	fmt.Fprintf(
+		e.Err,
+		"Deploy failed with error:\n%s\nWill retry in %d seconds.\n\n",
+		errStr,
+		waitTime/time.Second,
+	)
+	time.Sleep(waitTime)
+	return nil
+}
+
+func (d *deployCmd) run(e *env, c *client) error {
+	var prevErr error
+	for i := 0; i < d.Retries; i++ {
+		parseVersion := c.Config.getProjectConfig().Parse.JSSDK
 		newDeployInfo, err := d.deploy(parseVersion, nil, false, e)
 		if err == nil {
 			if parseVersion == "" && newDeployInfo != nil && newDeployInfo.ParseVersion != "" {
-				config.getProjectConfig().Parse.JSSDK = newDeployInfo.ParseVersion
-				return storeProjectConfig(e, config)
+				c.Config.getProjectConfig().Parse.JSSDK = newDeployInfo.ParseVersion
+				return storeProjectConfig(e, c.Config)
 			}
 			return nil
 		}
-
-		first = false
-		if i == d.Retries-1 {
+		if err := d.handleError(i, err, prevErr, e); err != nil {
 			return err
 		}
+		prevErr = err
 	}
 
 	return nil
 }
 
 func newDeployCmd(e *env) *cobra.Command {
-	d := deployCmd{Verbose: true, Retries: 5}
+	d := deployCmd{
+		Verbose: true,
+		Retries: 3,
+		wait:    func(n int) time.Duration { return time.Duration(n) * time.Second },
+	}
+
 	cmd := &cobra.Command{
 		Use:   "deploy [app]",
 		Short: "Deploys a Parse App",

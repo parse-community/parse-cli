@@ -648,12 +648,18 @@ func TestDeployRetries(t *testing.T) {
 	h.Err.Reset()
 	d.Retries = 2
 	ensure.Err(t, d.run(h.env, &client), regexp.MustCompile("no such file or directory"))
-	ensure.DeepEqual(t, h.Err.String(), "Deploy failed. Retrying deploy...\n\n")
+	ensure.DeepEqual(
+		t,
+		h.Err.String(),
+		"Deploy failed with error:\nlstat cloud: no such file or directory\nWill retry in 0 seconds.\n\n",
+	)
 
 	h.Err.Reset()
 	d.Retries = 5
 	ensure.Err(t, d.run(h.env, &client), regexp.MustCompile("no such file or directory"))
-	ensure.DeepEqual(t, h.Err.String(), strings.Repeat("Deploy failed. Retrying deploy...\n\n", 4))
+	errStr := "Deploy failed with error:\nlstat cloud: no such file or directory\nWill retry in 0 seconds.\n\n"
+	errStr += strings.Repeat("Sorry, deploy failed again with same error.\nWill retry in 0 seconds.\n\n", 3)
+	ensure.DeepEqual(t, h.Err.String(), errStr)
 }
 
 func TestIgnoredFiles(t *testing.T) {
