@@ -16,7 +16,7 @@ var scriptPath = regexp.MustCompile("/1/scripts/.*")
 var hostedPath = regexp.MustCompile("/1/hosted_files/.*")
 
 func setupForDownload(t testing.TB) *Harness {
-	h := newHarness(t)
+	h := createParseProject(t)
 	ht := transportFunc(func(r *http.Request) (*http.Response, error) {
 		ensure.DeepEqual(t, r.FormValue("version"), "version")
 		ensure.DeepEqual(t, r.FormValue("checksum"), "checksum")
@@ -73,11 +73,11 @@ func TestDownloadHosted(t *testing.T) {
 	release := getRelease()
 	files := fileMap{}
 
-	_, ok := files["/public/index.html"]
+	_, ok := files[h.env.Root+"/public/index.html"]
 	ensure.False(t, ok)
 	err := d.downloadHosted(h.env, release, files)
 	ensure.Nil(t, err)
-	_, ok = files["/public/index.html"]
+	_, ok = files[h.env.Root+"/public/index.html"]
 	ensure.True(t, ok)
 }
 
@@ -90,11 +90,11 @@ func TestDownloadScripts(t *testing.T) {
 	release := getRelease()
 	files := fileMap{}
 
-	_, ok := files["/cloud/main.js"]
+	_, ok := files[h.env.Root+"/cloud/main.js"]
 	ensure.False(t, ok)
 	err := d.downloadScripts(h.env, release, files)
 	ensure.Nil(t, err)
-	_, ok = files["/cloud/main.js"]
+	_, ok = files[h.env.Root+"/cloud/main.js"]
 	ensure.True(t, ok)
 }
 
