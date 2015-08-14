@@ -290,6 +290,7 @@ http://parse.com`,
 	c.AddCommand(newListCmd(e))
 	c.AddCommand(newLogsCmd(e))
 	c.AddCommand(newNewCmd(e))
+	c.AddCommand(newDownloadCmd(e))
 	c.AddCommand(newReleasesCmd(e))
 	c.AddCommand(newRollbackCmd(e))
 	c.AddCommand(newSymbolsCmd(e))
