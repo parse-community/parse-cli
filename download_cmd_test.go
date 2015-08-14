@@ -105,8 +105,8 @@ func TestDownloadWriteFiles(t *testing.T) {
 
 	d := downloadCmd{}
 	files := fileMap{
-		"/scripts/main.js":  []byte("javascript"),
-		"/cloud/index.html": []byte("html"),
+		h.env.Root + "/scripts/main.js":  []byte("javascript"),
+		h.env.Root + "/cloud/index.html": []byte("html"),
 	}
 	err := d.writeFiles(files)
 	ensure.Nil(t, err)
