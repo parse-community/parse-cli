@@ -35,6 +35,9 @@ func (d *developCmd) contDeploy(e *env, deployer deployFunc, first, done chan st
 	ticker := e.Clock.Ticker(d.deployInterval)
 	defer ticker.Stop()
 
+	printFreq := int(20 * (time.Second * 1.0 / d.deployInterval))
+	printCounter := 0
+
 	latestError := false
 	for {
 		select {
@@ -67,16 +70,20 @@ Please fix your config file in %s and try again.
 		// perform deploy
 		newDeplInfo, err := deployer(config.getProjectConfig().Parse.JSSDK, prevDeplInfo, true, e)
 		if err != nil {
-			if !latestError {
-				latestError = true
-			}
 			if latestError {
 				fmt.Fprintf(
 					e.Err,
 					`Failed to deploy changes to Cloud Code.
 Got error: %s`,
-					errorString(err),
+					errorString(e, err),
 				)
+			} else {
+				latestError = true
+			}
+		} else {
+			printCounter = (printCounter + 1) % printFreq
+			if printCounter == 0 {
+				fmt.Fprintf(e.Out, "Deployed changes to Cloud Code.")
 			}
 		}
 
