@@ -42,6 +42,7 @@ func (d *developCmd) contDeploy(e *env, deployer deployFunc, first, done chan st
 		case <-done:
 			return
 		}
+		// read config
 		config, err := configFromDir(e.Root)
 		if err != nil {
 			if !latestError {
@@ -62,8 +63,24 @@ Please fix your config file in %s and try again.
 			}
 			continue
 		}
+
+		// perform deploy
+		newDeplInfo, err := deployer(config.getProjectConfig().Parse.JSSDK, prevDeplInfo, true, e)
+		if err != nil {
+			if !latestError {
+				latestError = true
+			}
+			if latestError {
+				fmt.Fprintf(
+					e.Err,
+					`Failed to deploy changes to Cloud Code.
+Got error: %s`,
+					errorString(err),
+				)
+			}
+		}
+
 		latestError = false
-		newDeplInfo, _ := deployer(config.getProjectConfig().Parse.JSSDK, prevDeplInfo, true, e)
 		if !d.mustFetch {
 			prevDeplInfo = newDeplInfo
 		}
