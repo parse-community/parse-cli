@@ -6,7 +6,6 @@ import (
 	"io"
 	"net/url"
 	"os"
-	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"runtime"
@@ -26,10 +25,7 @@ const (
 	defaultBaseURL = "https://api.parse.com/1/"
 )
 
-var (
-	autoUpdate = false
-	userAgent  = fmt.Sprintf("parse-cli-%s-%s", runtime.GOOS, version)
-)
+var userAgent = fmt.Sprintf("parse-cli-%s-%s", runtime.GOOS, version)
 
 type versionCmd struct{}
 
@@ -377,39 +373,13 @@ func main() {
 	}
 	e.Client = client
 
-	// autoUpdate is false for all non-production builds
-	// so we never auto update
-	// for production builds autoUpdate is true but
-	// we suppress auto-update iff PARSE_NOUPDATE is not set
-	if autoUpdate && os.Getenv("PARSE_NOUPDATE") == "" {
-		// Perform a best effort update
-		updated, err := (&updateCmd{}).updateCLI(&e)
-		if err != nil {
-			cmd := exec.Command(os.Args[0], "version")
-			if err := cmd.Run(); err != nil {
-				fmt.Fprintf(e.Out, `parse cli corrupted during update.
-Please follow instructions at: 
-	https://parse.com/apps/quickstart#cloud_code
-to install a new cli.`)
-				os.Exit(1)
-			}
-		}
-
-		if updated {
-			// Re-run the command with the updated CLI
-			cmd := exec.Cmd{
-				Path:   os.Args[0],
-				Args:   os.Args,
-				Stdin:  os.Stdin,
-				Stdout: os.Stdout,
-				Stderr: os.Stderr,
-			}
-
-			if err := cmd.Run(); err != nil {
-				os.Exit(1)
-			}
-			return
-		}
+	message, err := checkIfSupported(&e, version)
+	if err != nil {
+		fmt.Fprintln(e.Err, err)
+		os.Exit(1)
+	}
+	if message != "" {
+		fmt.Fprintln(e.Err, message)
 	}
 
 	if err := rootCmd(&e).Execute(); err != nil {

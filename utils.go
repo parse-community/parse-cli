@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"net/http"
 	"net/url"
 	"regexp"
 	"strconv"
@@ -103,4 +104,22 @@ func getHostFromURL(urlStr string) (string, error) {
 		return "", stackerr.Newf("%s is not a valid url", urlStr)
 	}
 	return server, nil
+}
+
+func checkIfSupported(e *env, version string) (string, error) {
+	v := make(url.Values)
+	v.Set("version", version)
+	req := &http.Request{
+		Method: "GET",
+		URL:    &url.URL{Path: "supported", RawQuery: v.Encode()},
+	}
+
+	var res struct {
+		Warning string `json:"warning"`
+	}
+
+	if _, err := e.Client.Do(req, nil, &res); err != nil {
+		return "", stackerr.Wrap(err)
+	}
+	return res.Warning, nil
 }
