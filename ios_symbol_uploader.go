@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -177,7 +178,12 @@ func (i *iosSymbolUploader) symbolConversionTool(baseDir string,
 	if updater == nil {
 		if toUpdate {
 			fmt.Fprintln(e.Out, "Fetching required resources...")
-			err, _ = update.New().Target(toolPath).FromUrl(osxSymbolConverterDownloadURL)
+			var resp *http.Response
+			resp, err = http.Get(osxSymbolConverterDownloadURL)
+			if err == nil {
+				defer resp.Body.Close()
+				err = update.Apply(resp.Body, &update.Options{TargetPath: toolPath})
+			}
 		}
 	} else {
 		err = updater(toolPath, osxSymbolConverterDownloadURL)
