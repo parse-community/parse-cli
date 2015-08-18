@@ -65,8 +65,14 @@ func (u *updateCmd) updateCLI(e *env) (bool, error) {
 	}
 
 	fmt.Fprintf(e.Out, "Downloading binary from %s.\n", downloadURL)
-	if err, _ := update.New().Target(exec).FromUrl(downloadURL); err != nil {
-		return false, stackerr.Newf("Update failed: %v", err)
+	resp, err := http.Get(downloadURL)
+	if err != nil {
+		return false, stackerr.Newf("Update failed with error: %v", err)
+	}
+	defer resp.Body.Close()
+	err = update.Apply(resp.Body, &update.Options{TargetPath: exec})
+	if err != nil {
+		return false, stackerr.Newf("Update failed with error: %v", err)
 	}
 	fmt.Fprintf(e.Out, "Successfully updated binary at: %s\n", exec)
 	return true, nil
