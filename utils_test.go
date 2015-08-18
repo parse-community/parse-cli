@@ -2,10 +2,14 @@ package main
 
 import (
 	"crypto/rand"
+	"io/ioutil"
+	"net/http"
 	"regexp"
 	"testing"
 
 	"github.com/facebookgo/ensure"
+	"github.com/facebookgo/jsonpipe"
+	"github.com/facebookgo/parse"
 )
 
 func TestBothEmpty(t *testing.T) {
@@ -82,4 +86,49 @@ func TestGetHostFromURL(t *testing.T) {
 	urlStr = "api.example.com:8080:90"
 	host, err = getHostFromURL(urlStr)
 	ensure.Err(t, err, regexp.MustCompile("not a valid url"))
+}
+
+func TestIsSupportedWarning(t *testing.T) {
+	t.Parallel()
+
+	h := newHarness(t)
+	defer h.Stop()
+
+	ht := transportFunc(func(r *http.Request) (*http.Response, error) {
+		ensure.DeepEqual(t, r.URL.Path, "/1/supported")
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Body: ioutil.NopCloser(
+				jsonpipe.Encode(
+					map[string]string{"warning": "please update"},
+				),
+			),
+		}, nil
+	})
+	h.env.Client = &Client{client: &parse.Client{Transport: ht}}
+	message, err := checkIfSupported(h.env, "2.0.2")
+	ensure.Nil(t, err)
+	ensure.DeepEqual(t, message, "please update")
+}
+
+func TestIsSupportedError(t *testing.T) {
+	t.Parallel()
+
+	h := newHarness(t)
+	defer h.Stop()
+
+	ht := transportFunc(func(r *http.Request) (*http.Response, error) {
+		ensure.DeepEqual(t, r.URL.Path, "/1/supported")
+		return &http.Response{
+			StatusCode: http.StatusBadRequest,
+			Body: ioutil.NopCloser(
+				jsonpipe.Encode(
+					map[string]string{"error": "not supported"},
+				),
+			),
+		}, nil
+	})
+	h.env.Client = &Client{client: &parse.Client{Transport: ht}}
+	_, err := checkIfSupported(h.env, "2.0.2")
+	ensure.Err(t, err, regexp.MustCompile("not supported"))
 }

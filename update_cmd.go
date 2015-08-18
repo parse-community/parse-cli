@@ -4,9 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"path"
 	"runtime"
-	"strings"
 
 	"github.com/facebookgo/stackerr"
 	"github.com/inconshreveable/go-update"
@@ -15,48 +13,58 @@ import (
 )
 
 const (
-	macCliDownloadURL     = "https://parse.com/downloads/cloud_code/cli/parse-osx/latest"
-	unixCliDownloadURL    = "https://parse.com/downloads/cloud_code/cli/parse-linux/latest"
-	windowsCliDownloadURL = "https://parse.com/downloads/cloud_code/cli/parse-windows/latest"
+	macDownload       = "parse"
+	windowsDownload   = "parse.exe"
+	linuxDownload     = "parse_linux"
+	linuxArmDownload  = "parse_linux_arm"
+	downloadURLFormat = "https://github.com/ParsePlatform/parse-cli/releases/download/release_%s/%s"
 )
 
 type updateCmd struct{}
 
-func (u *updateCmd) latestVersion(e *env, downloadURL string) (string, error) {
-	dURL, err := url.Parse(downloadURL)
-	if err != nil {
+func (u *updateCmd) latestVersion(e *env) (string, error) {
+	v := make(url.Values)
+	v.Set("version", "latest")
+	req := &http.Request{
+		Method: "GET",
+		URL:    &url.URL{Path: "supported", RawQuery: v.Encode()},
+	}
+
+	var res struct {
+		Version string `json:"version"`
+	}
+
+	if _, err := e.Client.Do(req, nil, &res); err != nil {
 		return "", stackerr.Wrap(err)
 	}
 
-	resp, err := e.Client.Do(&http.Request{Method: "HEAD", URL: dURL}, nil, nil)
-	if err != nil {
-		return "", nil // if unable to fetch latest cli version, do not abort!
-	}
-
-	base := path.Base(resp.Header.Get("Location"))
-	base = strings.TrimSuffix(base, ".exe")
-	//parse-os-2.0.2
-	splits := strings.Split(base, "-")
-
-	return splits[len(splits)-1], nil
+	return res.Version, nil
 }
 
 func (u *updateCmd) updateCLI(e *env) (bool, error) {
-	downloadURL := unixCliDownloadURL
-	switch runtime.GOOS {
-	case "windows":
-		downloadURL = windowsCliDownloadURL
-	case "darwin":
-		downloadURL = macCliDownloadURL
-	}
+	ostype := runtime.GOOS
+	arch := runtime.GOARCH
 
-	latestVersion, err := u.latestVersion(e, downloadURL)
+	latestVersion, err := u.latestVersion(e)
 	if err != nil {
-		return false, stackerr.Wrap(err)
+		return false, err
 	}
-
 	if latestVersion == "" || latestVersion == version {
 		return false, nil
+	}
+
+	var downloadURL string
+	switch ostype {
+	case "darwin":
+		downloadURL = fmt.Sprintf(downloadURLFormat, latestVersion, macDownload)
+	case "windows":
+		downloadURL = fmt.Sprintf(downloadURLFormat, latestVersion, windowsDownload)
+	case "linux":
+		if arch == "arm" {
+			downloadURL = fmt.Sprintf(downloadURLFormat, latestVersion, linuxArmDownload)
+		} else {
+			downloadURL = fmt.Sprintf(downloadURLFormat, latestVersion, linuxDownload)
+		}
 	}
 
 	exec, err := osext.Executable()
