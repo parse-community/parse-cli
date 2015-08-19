@@ -14,6 +14,7 @@ type configureCmd struct {
 func (c *configureCmd) accessToken(e *env) error {
 	fmt.Fprintf(e.Out,
 		`Please enter an access token if you already generated it.
+
 If you do not have an access token or would like to generate a new one,
 please type: "y" to open the browser or "n" to continue: `,
 	)

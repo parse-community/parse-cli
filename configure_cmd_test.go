@@ -21,10 +21,12 @@ func TestConfigureAcessToken(t *testing.T) {
 	ensure.DeepEqual(t,
 		h.Out.String(),
 		`Please enter an access token if you already generated it.
+
 If you do not have an access token or would like to generate a new one,
-please type: "y" to open the browser or "n" to continue: Access Token: Successfully stored credentials.
-`,
-	)
+please type: "y" to open the browser or "n" to continue: Please open "https://www.parse.com/account_keys" in the browser
+and follow instructions to create an access token.
+Access Token: Successfully stored credentials.
+`)
 	h.env.In = ioutil.NopCloser(strings.NewReader("n\nemail\ninvalid\n"))
 	ensure.Err(t, c.accessToken(h.env), regexp.MustCompile("Please try again"))
 	ensure.DeepEqual(t,

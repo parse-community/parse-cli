@@ -168,10 +168,10 @@ func (l *login) authUserWithToken(e *env) error {
 	_, err = apps.restFetchApps(e)
 	if err == errAuth {
 		fmt.Fprintln(e.Err,
-			`Sorry, you have an invalid token associated with the email: %q.
+			`Sorry, the token you configured is not valid.
 To avoid typing the email and password everytime,
-please type "parse configure token" and provide a valid access token.`,
-		)
+please type "parse configure token" and provide a valid access token.
+`)
 	}
 	if err != nil {
 		return stackerr.Wrap(err)
@@ -216,6 +216,12 @@ func (l *login) helpCreateToken(e *env) {
 	var shouldOpen string
 	fmt.Fscanf(e.In, "%s\n", &shouldOpen)
 	if shouldOpen == "n" {
+		fmt.Fprintf(e.Out,
+			`Please open %q in the browser
+and follow instructions to create an access token.
+`,
+			keysURL,
+		)
 		return
 	}
 	err := open.Run(keysURL)

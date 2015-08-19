@@ -207,12 +207,9 @@ func (a *apps) restCreateApp(e *env, appName string) (*app, error) {
 	req := &http.Request{
 		Method: "POST",
 		URL:    &url.URL{Path: "apps"},
-		Header: make(http.Header),
+		Header: getAuthHeaders(&a.login.credentials, nil),
 		Body:   ioutil.NopCloser(jsonpipe.Encode(map[string]string{"appName": appName})),
 	}
-
-	req.Header.Add("X-Parse-Email", a.login.credentials.email)
-	req.Header.Add("X-Parse-Password", a.login.credentials.password)
 
 	var res app
 	if response, err := e.Client.Do(req, nil, &res); err != nil {
