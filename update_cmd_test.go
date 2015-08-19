@@ -27,7 +27,7 @@ func TestLatestVersion(t *testing.T) {
 			),
 		}, nil
 	})
-	h.env.Client = &Client{client: &parse.Client{Transport: ht}}
+	h.env.ParseAPIClient = &ParseAPIClient{apiClient: &parse.Client{Transport: ht}}
 	u := new(updateCmd)
 
 	latestVersion, err := u.latestVersion(h.env)

@@ -60,10 +60,10 @@ func newHarness(t testing.TB) *Harness {
 		Clock: clock.NewMock(),
 	}
 	te.env = &env{
-		Out:    &te.Out,
-		Err:    &te.Err,
-		Clock:  te.Clock,
-		Client: &Client{client: &parse.Client{}},
+		Out:            &te.Out,
+		Err:            &te.Err,
+		Clock:          te.Clock,
+		ParseAPIClient: &ParseAPIClient{apiClient: &parse.Client{}},
 	}
 	return &te
 }
@@ -109,7 +109,7 @@ func TestRootCommand(t *testing.T) {
 	t.Parallel()
 	h := newHarness(t)
 	defer h.Stop()
-	rootCmd(h.env)
+	parseRootCmd(h.env)
 }
 
 func TestErrorStringWithoutStack(t *testing.T) {
@@ -194,7 +194,7 @@ func TestRunWithAppNonProjectDir(t *testing.T) {
 	ensure.StringContains(
 		t,
 		h.Err.String(),
-		"Command must be run in a directory containing a Parse project",
+		"Command must be run inside a Parse project.",
 	)
 }
 
@@ -224,7 +224,7 @@ func TestRunWithAppNamed(t *testing.T) {
 		},
 	}
 	h.makeWithConfig(jsonStr(t, c))
-	r := runWithClient(h.env, func(e *env, c *client) error {
+	r := runWithClient(h.env, func(e *env, c *context) error {
 		ensure.NotNil(t, c)
 		return nil
 	})
@@ -243,7 +243,7 @@ func TestRunWithDefault(t *testing.T) {
 		},
 	}
 	h.makeWithConfig(jsonStr(t, c))
-	r := runWithClient(h.env, func(e *env, c *client) error {
+	r := runWithClient(h.env, func(e *env, c *context) error {
 		ensure.NotNil(t, c)
 		return nil
 	})
@@ -265,7 +265,7 @@ func TestRunWithAppError(t *testing.T) {
 	const message = "hello world"
 	func() {
 		defer ensure.PanicDeepEqual(t, exitCode(1))
-		r := runWithClient(h.env, func(e *env, c *client) error {
+		r := runWithClient(h.env, func(e *env, c *context) error {
 			ensure.NotNil(t, c)
 			return errors.New(message)
 		})
@@ -276,7 +276,7 @@ func TestRunWithAppError(t *testing.T) {
 
 func TestNewClientInvalidServerURL(t *testing.T) {
 	t.Parallel()
-	c, err := newParseClient(&env{Server: ":"})
+	c, err := newParseAPIClient(&env{Server: ":"})
 	ensure.True(t, c == nil)
 	ensure.Err(t, err, regexp.MustCompile("invalid server URL"))
 }
@@ -307,15 +307,15 @@ func TestGetProjectRoot(t *testing.T) {
 	ensure.Nil(t, os.Mkdir(filepath.Join(h.env.Root, "parse", "public"), 0755))
 	ensure.Nil(t, os.MkdirAll(filepath.Join(h.env.Root, "parse", "cloud", "other", "config"), 0755))
 
-	ensure.DeepEqual(t, getProjectRoot(h.env, h.env.Root), h.env.Root)
+	ensure.DeepEqual(t, getLegacyProjectRoot(h.env, h.env.Root), h.env.Root)
 
-	ensure.DeepEqual(t, getProjectRoot(h.env, filepath.Join(h.env.Root, "parse", "config")), filepath.Join(h.env.Root, "parse"))
+	ensure.DeepEqual(t, getLegacyProjectRoot(h.env, filepath.Join(h.env.Root, "parse", "config")), filepath.Join(h.env.Root, "parse"))
 
-	ensure.DeepEqual(t, getProjectRoot(h.env, filepath.Join(h.env.Root, "parse", "cloud")), filepath.Join(h.env.Root, "parse"))
+	ensure.DeepEqual(t, getLegacyProjectRoot(h.env, filepath.Join(h.env.Root, "parse", "cloud")), filepath.Join(h.env.Root, "parse"))
 
-	ensure.DeepEqual(t, getProjectRoot(h.env, filepath.Join(h.env.Root, "parse", "public")), filepath.Join(h.env.Root, "parse"))
+	ensure.DeepEqual(t, getLegacyProjectRoot(h.env, filepath.Join(h.env.Root, "parse", "public")), filepath.Join(h.env.Root, "parse"))
 
-	ensure.DeepEqual(t, getProjectRoot(h.env, filepath.Join(h.env.Root, "parse", "cloud", "other")), filepath.Join(h.env.Root, "parse"))
+	ensure.DeepEqual(t, getLegacyProjectRoot(h.env, filepath.Join(h.env.Root, "parse", "cloud", "other")), filepath.Join(h.env.Root, "parse"))
 }
 
 func TestStackErrorString(t *testing.T) {

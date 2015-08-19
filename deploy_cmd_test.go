@@ -105,7 +105,7 @@ func setupForDeploy(t testing.TB, info *deployInfo) *Harness {
 			}, nil
 		}
 	})
-	h.env.Client = &Client{client: &parse.Client{Transport: ht}}
+	h.env.ParseAPIClient = &ParseAPIClient{apiClient: &parse.Client{Transport: ht}}
 	return h
 }
 
@@ -189,7 +189,7 @@ func TestUploadFileHttpError(t *testing.T) {
 			Body:       ioutil.NopCloser(strings.NewReader(`{"error": "something is wrong"}`)),
 		}, nil
 	})
-	h.env.Client = &Client{client: &parse.Client{Transport: ht}}
+	h.env.ParseAPIClient = &ParseAPIClient{apiClient: &parse.Client{Transport: ht}}
 	dirRoot := filepath.Join(h.env.Root, "cloud")
 	_, err := d.uploadFile(filepath.Join(dirRoot, "main.js"), "uploads",
 		h.env, func(name string) string { return "main.js" })
@@ -210,7 +210,7 @@ func TestUploadFileMalformed(t *testing.T) {
 		}, nil
 	})
 
-	h.env.Client = &Client{client: &parse.Client{Transport: ht}}
+	h.env.ParseAPIClient = &ParseAPIClient{apiClient: &parse.Client{Transport: ht}}
 	dirRoot := filepath.Join(h.env.Root, "cloud")
 	_, err := d.uploadFile(filepath.Join(dirRoot, "main.js"), "uploads", h.env,
 		func(name string) string { return "main.js" })
@@ -242,7 +242,7 @@ func TestMakeNewRelease(t *testing.T) {
 			Body:       ioutil.NopCloser(strings.NewReader(jsonStr(t, &info))),
 		}, nil
 	})
-	h.env.Client = &Client{client: &parse.Client{Transport: ht}}
+	h.env.ParseAPIClient = &ParseAPIClient{apiClient: &parse.Client{Transport: ht}}
 	res, err := d.makeNewRelease(&deployInfo{}, h.env)
 	ensure.Nil(t, err)
 	ensure.DeepEqual(t, info, res)
@@ -261,7 +261,7 @@ func TestMakeNewReleaseError(t *testing.T) {
 			Body:       ioutil.NopCloser(strings.NewReader(`{"error": "something is wrong"}`)),
 		}, nil
 	})
-	h.env.Client = &Client{client: &parse.Client{Transport: ht}}
+	h.env.ParseAPIClient = &ParseAPIClient{apiClient: &parse.Client{Transport: ht}}
 	_, err := d.makeNewRelease(&deployInfo{}, h.env)
 	ensure.Err(t, err, regexp.MustCompile("something is wrong"))
 }
@@ -291,7 +291,7 @@ func TestGetPrevDeplInfo(t *testing.T) {
 			Body:       ioutil.NopCloser(strings.NewReader(jsonStr(t, info))),
 		}, nil
 	})
-	h.env.Client = &Client{client: &parse.Client{Transport: ht}}
+	h.env.ParseAPIClient = &ParseAPIClient{apiClient: &parse.Client{Transport: ht}}
 	res, err := d.getPrevDeplInfo(h.env)
 	ensure.Nil(t, err)
 	ensure.DeepEqual(t, res, info)
@@ -323,7 +323,7 @@ func TestGetPrevDeplInfoLegacy(t *testing.T) {
 			Body:       ioutil.NopCloser(strings.NewReader(jsonStr(t, info))),
 		}, nil
 	})
-	h.env.Client = &Client{client: &parse.Client{Transport: ht}}
+	h.env.ParseAPIClient = &ParseAPIClient{apiClient: &parse.Client{Transport: ht}}
 	res, err := d.getPrevDeplInfo(h.env)
 	ensure.Nil(t, err)
 	ensure.DeepEqual(t, res, &deployInfo{
@@ -351,7 +351,7 @@ func TestGetPrevDeplInfoError(t *testing.T) {
 			Body:       ioutil.NopCloser(strings.NewReader(`{"error": "something is wrong"}`)),
 		}, nil
 	})
-	h.env.Client = &Client{client: &parse.Client{Transport: ht}}
+	h.env.ParseAPIClient = &ParseAPIClient{apiClient: &parse.Client{Transport: ht}}
 	_, err := d.getPrevDeplInfo(h.env)
 	ensure.Err(t, err, regexp.MustCompile("something is wrong"))
 }
@@ -382,7 +382,7 @@ func TestUploadSourceFilesChanged(t *testing.T) {
 		}, nil
 	})
 
-	h.env.Client = &Client{client: &parse.Client{Transport: ht}}
+	h.env.ParseAPIClient = &ParseAPIClient{apiClient: &parse.Client{Transport: ht}}
 
 	var d deployCmd
 	checksums, versions, err := d.uploadSourceFiles(u)
@@ -636,18 +636,18 @@ func TestDeployRetries(t *testing.T) {
 			Body:       ioutil.NopCloser(strings.NewReader(jsonStr(t, info))),
 		}, nil
 	})
-	h.env.Client = &Client{client: &parse.Client{Transport: ht}}
+	h.env.ParseAPIClient = &ParseAPIClient{apiClient: &parse.Client{Transport: ht}}
 
 	d := &deployCmd{Retries: 1}
-	client := client{Config: defaulParseConfig}
-	client.Config.getProjectConfig().Parse.JSSDK = "latest"
+	ctx := context{Config: defaultParseConfig}
+	ctx.Config.getProjectConfig().Parse.JSSDK = "latest"
 
-	ensure.Err(t, d.run(h.env, &client), regexp.MustCompile("no such file or directory"))
+	ensure.Err(t, d.run(h.env, &ctx), regexp.MustCompile("no such file or directory"))
 	ensure.DeepEqual(t, h.Err.String(), "")
 
 	h.Err.Reset()
 	d.Retries = 2
-	ensure.Err(t, d.run(h.env, &client), regexp.MustCompile("no such file or directory"))
+	ensure.Err(t, d.run(h.env, &ctx), regexp.MustCompile("no such file or directory"))
 	ensure.DeepEqual(
 		t,
 		h.Err.String(),
@@ -656,7 +656,7 @@ func TestDeployRetries(t *testing.T) {
 
 	h.Err.Reset()
 	d.Retries = 5
-	ensure.Err(t, d.run(h.env, &client), regexp.MustCompile("no such file or directory"))
+	ensure.Err(t, d.run(h.env, &ctx), regexp.MustCompile("no such file or directory"))
 	errStr := "Deploy failed with error:\nlstat cloud: no such file or directory\nWill retry in 0 seconds.\n\n"
 	errStr += strings.Repeat("Sorry, deploy failed again with same error.\nWill retry in 0 seconds.\n\n", 3)
 	ensure.DeepEqual(t, h.Err.String(), errStr)

@@ -57,7 +57,7 @@ func readFunctionParams(e *env) (*functionHook, error) {
 
 const defaultFunctionsURL = "/1/hooks/functions"
 
-func (h *functionHooksCmd) functionHooksCreate(e *env, client *client) error {
+func (h *functionHooksCmd) functionHooksCreate(e *env, ctx *context) error {
 	params, err := readFunctionParams(e)
 	if err != nil {
 		return err
@@ -67,7 +67,7 @@ func (h *functionHooksCmd) functionHooksCreate(e *env, client *client) error {
 	if err != nil {
 		return err
 	}
-	_, err = e.Client.Post(functionsURL, params, &res)
+	_, err = e.ParseAPIClient.Post(functionsURL, params, &res)
 	if err != nil {
 		return err
 	}
@@ -83,7 +83,7 @@ func (h *functionHooksCmd) functionHooksCreate(e *env, client *client) error {
 	return nil
 }
 
-func (h *functionHooksCmd) functionHooksRead(e *env, client *client) error {
+func (h *functionHooksCmd) functionHooksRead(e *env, ctx *context) error {
 	u := defaultFunctionsURL
 	var function *functionHook
 	if !h.All {
@@ -102,7 +102,7 @@ func (h *functionHooksCmd) functionHooksRead(e *env, client *client) error {
 	var res struct {
 		Results []*functionHook `json:"results,omitempty"`
 	}
-	_, err = e.Client.Get(functionsURL, &res)
+	_, err = e.ParseAPIClient.Get(functionsURL, &res)
 	if err != nil {
 		return err
 	}
@@ -125,7 +125,7 @@ func (h *functionHooksCmd) functionHooksRead(e *env, client *client) error {
 	return nil
 }
 
-func (h *functionHooksCmd) functionHooksUpdate(e *env, client *client) error {
+func (h *functionHooksCmd) functionHooksUpdate(e *env, ctx *context) error {
 	params, err := readFunctionParams(e)
 	if err != nil {
 		return err
@@ -136,7 +136,7 @@ func (h *functionHooksCmd) functionHooksUpdate(e *env, client *client) error {
 		return err
 	}
 
-	_, err = e.Client.Put(functionsURL, &functionHook{URL: params.URL}, &res)
+	_, err = e.ParseAPIClient.Put(functionsURL, &functionHook{URL: params.URL}, &res)
 	if err != nil {
 		return err
 	}
@@ -152,7 +152,7 @@ func (h *functionHooksCmd) functionHooksUpdate(e *env, client *client) error {
 	return nil
 }
 
-func (h *functionHooksCmd) functionHooksDelete(e *env, client *client) error {
+func (h *functionHooksCmd) functionHooksDelete(e *env, ctx *context) error {
 	params, err := readFunctionName(e)
 	if err != nil {
 		return err
@@ -169,7 +169,7 @@ func (h *functionHooksCmd) functionHooksDelete(e *env, client *client) error {
 
 	var res functionHook
 	if getConfirmation(confirmMessage, e) {
-		_, err = e.Client.Put(functionsURL, map[string]interface{}{"__op": "Delete"}, &res)
+		_, err = e.ParseAPIClient.Put(functionsURL, map[string]interface{}{"__op": "Delete"}, &res)
 		if err != nil {
 			return err
 		}
@@ -182,7 +182,7 @@ func (h *functionHooksCmd) functionHooksDelete(e *env, client *client) error {
 	return nil
 }
 
-func (h *functionHooksCmd) functionHooks(e *env, c *client) error {
+func (h *functionHooksCmd) functionHooks(e *env, c *context) error {
 	hp := *h
 	hp.All = true
 	return hp.functionHooksRead(e, c)

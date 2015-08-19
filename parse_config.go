@@ -1,8 +1,9 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
-	"path/filepath"
+	"os"
 	"sort"
 
 	"github.com/facebookgo/stackerr"
@@ -136,15 +137,34 @@ func (c *parseConfig) pprintApps(e *env) {
 	}
 }
 
-func storeParseConfig(e *env, c *parseConfig) error {
-	projectType := c.projectConfig.Type
-	if projectType == legacy {
-		lconf := &legacyConfig{Applications: c.Applications}
-		lconf.Global.ParseVersion = c.projectConfig.Parse.JSSDK
-		return writeLegacyConfigFile(
-			lconf,
-			filepath.Join(e.Root, legacyConfigFile),
-		)
+func readParseConfigFile(path string) (*parseConfig, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, stackerr.Wrap(err)
 	}
-	return stackerr.Newf("Unknown project type: %s.", projectType)
+	defer f.Close()
+	var c parseConfig
+	if err := json.NewDecoder(f).Decode(&c); err != nil {
+		return nil, stackerr.Newf("Config file %q is not valid JSON.", path)
+	}
+	return &c, nil
+}
+
+func setParseDefault(e *env, newDefault, defaultApp string, parseConfig *parseConfig) error {
+	apps := parseConfig.Applications
+	if _, ok := apps[newDefault]; !ok {
+		parseConfig.pprintApps(e)
+		return stackerr.Newf("Invalid application name \"%s\". Please select from the valid applications printed above.", newDefault)
+	}
+
+	if defaultApp == "" {
+		apps[defaultKey] = &parseAppConfig{Link: newDefault}
+	} else {
+		apps[defaultKey].Link = newDefault
+	}
+	if err := storeConfig(e, parseConfig); err != nil {
+		return err
+	}
+	fmt.Fprintf(e.Out, "Default app set to %s.\n", newDefault)
+	return nil
 }

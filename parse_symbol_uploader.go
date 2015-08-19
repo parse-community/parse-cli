@@ -69,7 +69,7 @@ func uploadSymbolFiles(files []string, commonHeaders map[string]string, removeFi
 		}
 		req.Header.Add("Content-Type", mimeType)
 		res := make(map[string]interface{})
-		if _, err := e.Client.Do(req, nil, &res); err != nil {
+		if _, err := e.ParseAPIClient.Do(req, nil, &res); err != nil {
 			wg.Error(err)
 			return
 		}

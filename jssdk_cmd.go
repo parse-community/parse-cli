@@ -23,14 +23,14 @@ func (j *jsSDKCmd) getAllJSSdks(e *env) ([]string, error) {
 		Path: "jsVersions",
 	}
 	var response jsSDKVersion
-	if _, err := e.Client.Get(u, &response); err != nil {
+	if _, err := e.ParseAPIClient.Get(u, &response); err != nil {
 		return nil, stackerr.Wrap(err)
 	}
 	sort.Sort(naturalStrings(response.JS))
 	return response.JS, nil
 }
 
-func (j *jsSDKCmd) printVersions(e *env, c *client) error {
+func (j *jsSDKCmd) printVersions(e *env, c *context) error {
 	allVersions, err := j.getAllJSSdks(e)
 	if err != nil {
 		return err
@@ -47,7 +47,7 @@ func (j *jsSDKCmd) printVersions(e *env, c *client) error {
 	return nil
 }
 
-func (j *jsSDKCmd) getVersion(e *env, c *client) error {
+func (j *jsSDKCmd) getVersion(e *env, c *context) error {
 	if c.Config.getProjectConfig().Parse.JSSDK == "" {
 		return stackerr.New("JavaScript SDK version not set for this project.")
 	}
@@ -59,7 +59,7 @@ func (j *jsSDKCmd) getVersion(e *env, c *client) error {
 	return nil
 }
 
-func (j *jsSDKCmd) setVersion(e *env, c *client) error {
+func (j *jsSDKCmd) setVersion(e *env, c *context) error {
 	allVersions, err := j.getAllJSSdks(e)
 	if err != nil {
 		return err
@@ -109,7 +109,7 @@ func useLatestJSSDK(e *env) error {
 	return storeProjectConfig(e, config)
 }
 
-func (j *jsSDKCmd) run(e *env, c *client, args []string) error {
+func (j *jsSDKCmd) run(e *env, c *context, args []string) error {
 	switch {
 	case j.all:
 		return j.printVersions(e, c)

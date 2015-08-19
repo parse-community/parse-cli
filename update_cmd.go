@@ -34,7 +34,7 @@ func (u *updateCmd) latestVersion(e *env) (string, error) {
 		Version string `json:"version"`
 	}
 
-	if _, err := e.Client.Do(req, nil, &res); err != nil {
+	if _, err := e.ParseAPIClient.Do(req, nil, &res); err != nil {
 		return "", stackerr.Wrap(err)
 	}
 
