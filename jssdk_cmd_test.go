@@ -23,7 +23,7 @@ func newJsSdkHarness(t testing.TB) *Harness {
 			Body:       ioutil.NopCloser(strings.NewReader(jsonStr(t, rows))),
 		}, nil
 	})
-	h.env.Client = &Client{client: &parse.Client{Transport: ht}}
+	h.env.ParseAPIClient = &ParseAPIClient{apiClient: &parse.Client{Transport: ht}}
 	return h
 }
 
@@ -36,28 +36,24 @@ func newJsSdkHarnessError(t testing.TB) *Harness {
 			Body:       ioutil.NopCloser(strings.NewReader(`{"error":"something is wrong"}`)),
 		}, nil
 	})
-	h.env.Client = &Client{client: &parse.Client{Transport: ht}}
+	h.env.ParseAPIClient = &ParseAPIClient{apiClient: &parse.Client{Transport: ht}}
 	return h
 }
 
-func newJsSdkHarnessWithConfig(t testing.TB) (*Harness, *client) {
+func newJsSdkHarnessWithConfig(t testing.TB) (*Harness, *context) {
 	h := newJsSdkHarness(t)
 	h.makeEmptyRoot()
-	ensure.Nil(t, os.Mkdir(filepath.Join(h.env.Root, configDir), 0755))
-	path := filepath.Join(h.env.Root, legacyConfigFile)
-	ensure.Nil(t, ioutil.WriteFile(path,
-		[]byte(`{
-		"global": {
-			"parseVersion" : "1.2.9"
-		}
-	}`),
-		0600))
-	cfg, err := configFromDir(h.env.Root)
+
+	ensure.Nil(t, (&newCmd{}).cloneSampleCloudCode(h.env, &app{Name: "test"}, false))
+	h.Out.Reset()
+
+	c, err := configFromDir(h.env.Root)
 	ensure.Nil(t, err)
-	config, ok := (cfg).(*parseConfig)
+
+	config, ok := (c).(*parseConfig)
 	ensure.True(t, ok)
-	c := &client{Config: config}
-	return h, c
+
+	return h, &context{Config: config}
 }
 
 func TestGetAllJSVersions(t *testing.T) {
@@ -88,7 +84,7 @@ func TestPrintVersions(t *testing.T) {
 	ensure.DeepEqual(t, h.Out.String(),
 		`   1.2.11
    1.2.10
-*  1.2.9
+   1.2.9
    1.2.8
    0.2.0
 `)
@@ -107,7 +103,7 @@ func TestSetVersionNoneSelected(t *testing.T) {
 	h := newHarness(t)
 	defer h.Stop()
 
-	c := &client{Config: defaulParseConfig}
+	c := &context{Config: defaultParseConfig}
 	var j jsSDKCmd
 
 	c.Config.getProjectConfig().Parse.JSSDK = "1.2.1"
@@ -124,6 +120,49 @@ func TestSetValidVersion(t *testing.T) {
 	t.Parallel()
 
 	h, c := newJsSdkHarnessWithConfig(t)
+	defer h.Stop()
+	j := jsSDKCmd{newVersion: "1.2.11"}
+	ensure.Nil(t, j.setVersion(h.env, c))
+	ensure.DeepEqual(t, h.Out.String(), "Current JavaScript SDK version is 1.2.11\n")
+
+	content, err := ioutil.ReadFile(filepath.Join(h.env.Root, parseProject))
+	ensure.Nil(t, err)
+	ensure.DeepEqual(t, string(content), `{
+  "project_type": 1,
+  "parse": {
+    "jssdk": "1.2.11"
+  }
+}`)
+}
+
+// NOTE: testing for legacy config format
+func newLegacyJsSdkHarnessWithConfig(t testing.TB) (*Harness, *context) {
+	h := newJsSdkHarness(t)
+	h.makeEmptyRoot()
+
+	ensure.Nil(t, os.Mkdir(filepath.Join(h.env.Root, configDir), 0755))
+	path := filepath.Join(h.env.Root, legacyConfigFile)
+	ensure.Nil(t, ioutil.WriteFile(path,
+		[]byte(`{
+		"global": {
+			"parseVersion" : "1.2.9"
+		}
+	}`),
+		0600))
+
+	c, err := configFromDir(h.env.Root)
+	ensure.Nil(t, err)
+
+	config, ok := (c).(*parseConfig)
+	ensure.True(t, ok)
+
+	return h, &context{Config: config}
+}
+
+func TestLegacySetValidVersion(t *testing.T) {
+	t.Parallel()
+
+	h, c := newLegacyJsSdkHarnessWithConfig(t)
 	defer h.Stop()
 	j := jsSDKCmd{newVersion: "1.2.11"}
 	ensure.Nil(t, j.setVersion(h.env, c))

@@ -15,7 +15,7 @@ type symbolsCmd struct {
 	skipOsCheck bool
 }
 
-func (s *symbolsCmd) run(e *env, c *client) error {
+func (s *symbolsCmd) run(e *env, c *context) error {
 	android := &androidSymbolUploader{
 		Path:     s.path,
 		Apk:      s.apk,

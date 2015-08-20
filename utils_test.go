@@ -105,7 +105,7 @@ func TestIsSupportedWarning(t *testing.T) {
 			),
 		}, nil
 	})
-	h.env.Client = &Client{client: &parse.Client{Transport: ht}}
+	h.env.ParseAPIClient = &ParseAPIClient{apiClient: &parse.Client{Transport: ht}}
 	message, err := checkIfSupported(h.env, "2.0.2")
 	ensure.Nil(t, err)
 	ensure.DeepEqual(t, message, "please update")
@@ -128,7 +128,7 @@ func TestIsSupportedError(t *testing.T) {
 			),
 		}, nil
 	})
-	h.env.Client = &Client{client: &parse.Client{Transport: ht}}
+	h.env.ParseAPIClient = &ParseAPIClient{apiClient: &parse.Client{Transport: ht}}
 	_, err := checkIfSupported(h.env, "2.0.2")
 	ensure.Err(t, err, regexp.MustCompile("not supported"))
 }

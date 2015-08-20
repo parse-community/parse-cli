@@ -34,9 +34,35 @@ func readLegacyConfigFile(path string) (*legacyConfig, error) {
 }
 
 func writeLegacyConfigFile(c *legacyConfig, path string) error {
+	// if config directory does not exist yet, first create it
+	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+		return stackerr.Wrap(err)
+	}
+
 	b, err := json.MarshalIndent(c, "", "  ")
 	if err != nil {
 		return stackerr.Wrap(err)
 	}
 	return stackerr.Wrap(ioutil.WriteFile(path, b, 0600))
+}
+
+func getLegacyProjectRoot(e *env, cur string) string {
+	if _, err := os.Stat(filepath.Join(cur, legacyConfigFile)); err == nil {
+		return cur
+	}
+
+	root := cur
+	base := filepath.Base(root)
+
+	for base != "." && base != string(filepath.Separator) {
+		base = filepath.Base(root)
+		root = filepath.Dir(root)
+		if base == "cloud" || base == "public" || base == "config" {
+			if _, err := os.Stat(filepath.Join(root, legacyConfigFile)); err == nil {
+				return root
+			}
+		}
+	}
+
+	return cur
 }

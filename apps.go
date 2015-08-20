@@ -105,7 +105,7 @@ func fetchAppKeys(e *env, appID string) (*app, error) {
 	}
 	res := &app{}
 
-	if response, err := e.Client.Do(req, nil, res); err != nil {
+	if response, err := e.ParseAPIClient.Do(req, nil, res); err != nil {
 		if response.StatusCode == http.StatusUnauthorized {
 			return nil, errAuth
 		}
@@ -128,7 +128,7 @@ func (a *apps) restFetchApps(e *env) ([]*app, error) {
 		Results []*app `json:"results"`
 	}
 
-	if response, err := e.Client.Do(req, nil, &res); err != nil {
+	if response, err := e.ParseAPIClient.Do(req, nil, &res); err != nil {
 		if response.StatusCode == http.StatusUnauthorized {
 			return nil, errAuth
 		}
@@ -212,7 +212,7 @@ func (a *apps) restCreateApp(e *env, appName string) (*app, error) {
 	}
 
 	var res app
-	if response, err := e.Client.Do(req, nil, &res); err != nil {
+	if response, err := e.ParseAPIClient.Do(req, nil, &res); err != nil {
 		if response != nil && response.StatusCode == http.StatusUnauthorized {
 			return nil, errAuth
 		}

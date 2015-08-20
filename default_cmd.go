@@ -1,32 +1,11 @@
 package main
 
 import (
-	"fmt"
-
 	"github.com/facebookgo/stackerr"
 	"github.com/spf13/cobra"
 )
 
 type defaultCmd struct{}
-
-func (d *defaultCmd) printDefault(e *env, defaultApp string) error {
-	if defaultApp == "" {
-		return stackerr.New("No app is set as default app")
-	}
-	fmt.Fprintf(e.Out, "Current default app is %s\n", defaultApp)
-	return nil
-}
-
-func (d *defaultCmd) setDefault(e *env, newDefault, defaultApp string, c config) error {
-	if c.getProjectConfig().Type == legacy {
-		p, ok := c.(*parseConfig)
-		if !ok {
-			return stackerr.New("Invalid Cloud Code config.")
-		}
-		return d.setParseDefault(e, newDefault, defaultApp, p)
-	}
-	return stackerr.Newf("Project type not configured.")
-}
 
 func (d *defaultCmd) run(e *env, args []string) error {
 	var newDefault string
@@ -50,9 +29,9 @@ func (d *defaultCmd) run(e *env, args []string) error {
 
 	switch newDefault {
 	case "":
-		return d.printDefault(e, defaultApp)
+		return printDefault(e, defaultApp)
 	default:
-		return d.setDefault(e, newDefault, defaultApp, config)
+		return setDefault(e, newDefault, defaultApp, config)
 	}
 }
 

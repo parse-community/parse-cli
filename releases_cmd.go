@@ -74,12 +74,12 @@ Note that you can list files for all releases shown in "parse releases"`,
 	return nil
 }
 
-func (r *releasesCmd) run(e *env, c *client) error {
+func (r *releasesCmd) run(e *env, c *context) error {
 	u := &url.URL{
 		Path: "releases",
 	}
 	var releasesList []releasesResponse
-	if _, err := e.Client.Get(u, &releasesList); err != nil {
+	if _, err := e.ParseAPIClient.Get(u, &releasesList); err != nil {
 		return stackerr.Wrap(err)
 	}
 

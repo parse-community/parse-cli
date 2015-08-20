@@ -1,81 +1,68 @@
 package main
 
 import (
-	"os"
-	"path/filepath"
+	"fmt"
 
 	"github.com/facebookgo/stackerr"
-	"github.com/spf13/cobra"
 )
 
-type addCmd struct {
-	MakeDefault bool
-	apps        *apps
+func (a *addCmd) getParseAppConfig(app *app) *parseAppConfig {
+	return &parseAppConfig{
+		ApplicationID: app.ApplicationID,
+		masterKey:     app.MasterKey,
+	}
 }
 
-func (a *addCmd) writeConfig(
-	app *app,
+func (a *addCmd) addSelectedParseApp(
+	appName string,
+	appConfig *parseAppConfig,
 	args []string,
 	e *env,
-	verbose bool,
 ) error {
 	config, err := configFromDir(e.Root)
 	if err != nil {
 		return err
 	}
+	parseConfig, ok := config.(*parseConfig)
+	if !ok {
+		return stackerr.New("Invalid Cloud Code config.")
+	}
 
-	p := config.getProjectConfig()
-	if p.Type == legacy {
-		parseConfig, ok := config.(*parseConfig)
+	// add app to config
+	if _, ok := parseConfig.Applications[appName]; ok {
+		return stackerr.Newf("App %s has already been added", appName)
+	}
+
+	parseConfig.Applications[appName] = appConfig
+
+	if len(args) > 0 && args[0] != "" {
+		alias := args[0]
+		aliasConfig, ok := parseConfig.Applications[alias]
 		if !ok {
-			return stackerr.New("Invalid Cloud Code config.")
+			parseConfig.Applications[alias] = &parseAppConfig{Link: appName}
 		}
-		return a.writeParseConfig(parseConfig, app, args, e, verbose)
+		if ok && aliasConfig.getLink() != "" {
+			fmt.Fprintf(e.Out, "Overwriting alias: %q to point to %q\n", alias, appName)
+			parseConfig.Applications[alias] = &parseAppConfig{Link: appName}
+		}
 	}
 
-	return stackerr.Newf("Unknown project type: %s.", p.Type)
-}
+	if a.MakeDefault {
+		if _, ok := parseConfig.Applications[defaultKey]; ok {
+			return stackerr.New(`Default key already set. To override default, use command "parse default"`)
+		}
+		parseConfig.Applications[defaultKey] = &parseAppConfig{Link: appName}
+	}
 
-func (a *addCmd) selectApp(e *env) (*app, error) {
-	apps, err := a.apps.restFetchApps(e)
-	if err != nil {
-		return nil, err
-	}
-	app, err := a.apps.selectApp(apps, "Select an App to add to config: ", e)
-	if err != nil {
-		return nil, err
-	}
-	return app, nil
-}
-
-func (a *addCmd) run(e *env, args []string) error {
-	_, err := os.Lstat(filepath.Join(e.Root, legacyConfigFile))
-	if os.IsNotExist(err) {
-		return stackerr.New("Please run add command inside a parse project.")
-	}
-	if err := a.apps.login.authUser(e); err != nil {
+	if err := storeConfig(e, parseConfig); err != nil {
 		return err
 	}
-	app, err := a.selectApp(e)
-	if err != nil {
-		return err
+	if a.verbose {
+		fmt.Fprintf(e.Out, "Written config for %q\n", appName)
+		if a.MakeDefault {
+			fmt.Fprintf(e.Out, "Set %q as default\n", appName)
+		}
 	}
-	return a.writeConfig(app, args, e, true)
-}
 
-func newAddCmd(e *env) *cobra.Command {
-	a := &addCmd{
-		MakeDefault: false,
-		apps:        &apps{},
-	}
-	cmd := &cobra.Command{
-		Use:   "add [app]",
-		Short: "Adds a new Parse App to config in current Cloud Code directory",
-		Long: `Adds a new Parse App to config in current Cloud Code directory.
-If an argument is given, the added application can also be referenced by that name.`,
-		Run: runWithArgs(e, a.run),
-	}
-	cmd.Flags().BoolVarP(&a.MakeDefault, "default", "d", a.MakeDefault,
-		"Make the selected app default")
-	return cmd
+	return nil
 }

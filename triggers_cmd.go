@@ -62,7 +62,7 @@ func readTriggerParams(e *env) (*triggerHook, error) {
 
 const defaultTriggersURL = "/1/hooks/triggers"
 
-func (h *triggerHooksCmd) triggerHooksCreate(e *env, client *client) error {
+func (h *triggerHooksCmd) triggerHooksCreate(e *env, ctx *context) error {
 	params, err := readTriggerParams(e)
 	if err != nil {
 		return err
@@ -72,7 +72,7 @@ func (h *triggerHooksCmd) triggerHooksCreate(e *env, client *client) error {
 	if err != nil {
 		return err
 	}
-	_, err = e.Client.Post(triggersURL, params, &res)
+	_, err = e.ParseAPIClient.Post(triggersURL, params, &res)
 	if err != nil {
 		return err
 	}
@@ -88,7 +88,7 @@ func (h *triggerHooksCmd) triggerHooksCreate(e *env, client *client) error {
 	return nil
 }
 
-func (h *triggerHooksCmd) triggerHooksRead(e *env, client *client) error {
+func (h *triggerHooksCmd) triggerHooksRead(e *env, ctx *context) error {
 	u := defaultTriggersURL
 	var trigger *triggerHook
 	if !h.All {
@@ -106,7 +106,7 @@ func (h *triggerHooksCmd) triggerHooksRead(e *env, client *client) error {
 	var res struct {
 		Results []*triggerHook `json:"results,omitempty"`
 	}
-	_, err = e.Client.Get(triggersURL, &res)
+	_, err = e.ParseAPIClient.Get(triggersURL, &res)
 	if err != nil {
 		return err
 	}
@@ -130,7 +130,7 @@ func (h *triggerHooksCmd) triggerHooksRead(e *env, client *client) error {
 	return nil
 }
 
-func (h *triggerHooksCmd) triggerHooksUpdate(e *env, client *client) error {
+func (h *triggerHooksCmd) triggerHooksUpdate(e *env, ctx *context) error {
 	params, err := readTriggerParams(e)
 	if err != nil {
 		return err
@@ -140,7 +140,7 @@ func (h *triggerHooksCmd) triggerHooksUpdate(e *env, client *client) error {
 	if err != nil {
 		return err
 	}
-	_, err = e.Client.Put(triggersURL, &triggerHook{URL: params.URL}, &res)
+	_, err = e.ParseAPIClient.Put(triggersURL, &triggerHook{URL: params.URL}, &res)
 	if err != nil {
 		return err
 	}
@@ -157,7 +157,7 @@ func (h *triggerHooksCmd) triggerHooksUpdate(e *env, client *client) error {
 	return nil
 }
 
-func (h *triggerHooksCmd) triggerHooksDelete(e *env, client *client) error {
+func (h *triggerHooksCmd) triggerHooksDelete(e *env, ctx *context) error {
 	params, err := readTriggerName(e)
 	if err != nil {
 		return err
@@ -174,7 +174,7 @@ func (h *triggerHooksCmd) triggerHooksDelete(e *env, client *client) error {
 
 	var res triggerHook
 	if getConfirmation(confirmMessage, e) {
-		_, err = e.Client.Put(triggersURL, map[string]interface{}{"__op": "Delete"}, &res)
+		_, err = e.ParseAPIClient.Put(triggersURL, map[string]interface{}{"__op": "Delete"}, &res)
 		if err != nil {
 			return err
 		}
@@ -192,7 +192,7 @@ func (h *triggerHooksCmd) triggerHooksDelete(e *env, client *client) error {
 	return nil
 }
 
-func (h *triggerHooksCmd) triggerHooks(e *env, c *client) error {
+func (h *triggerHooksCmd) triggerHooks(e *env, c *context) error {
 	hp := *h
 	hp.All = true
 	return hp.triggerHooksRead(e, c)

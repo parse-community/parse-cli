@@ -169,8 +169,7 @@ func (l *login) authUserWithToken(e *env) error {
 	if err == errAuth {
 		fmt.Fprintln(e.Err,
 			`Sorry, the token you configured is not valid.
-To avoid typing the email and password everytime,
-please type "parse configure token" and provide a valid access token.
+
 `)
 	}
 	if err != nil {
@@ -187,8 +186,13 @@ func (l *login) authUser(e *env) error {
 	}
 
 	apps := &apps{}
+	fmt.Fprintln(
+		e.Out,
+		`To avoid typing the email and password everytime,
+please type "parse configure token" and provide a valid access token.
 
-	fmt.Fprintln(e.Out, "Please log in to Parse using your email and password.")
+Please log in to Parse using your email and password.`,
+	)
 	for i := 0; i < numRetries; i++ {
 		err := l.populateCreds(e)
 		if err != nil {

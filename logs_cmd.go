@@ -29,7 +29,7 @@ type logsCmd struct {
 	level  string
 }
 
-func (l *logsCmd) run(e *env, c *client) error {
+func (l *logsCmd) run(e *env, c *context) error {
 	level := strings.ToUpper(l.level)
 	if level != "INFO" && level != "ERROR" {
 		return stackerr.Newf("invalid level: %q", l.level)
@@ -64,7 +64,7 @@ func (l *logsCmd) run(e *env, c *client) error {
 	return nil
 }
 
-func (l *logsCmd) round(e *env, c *client, startTime *parseTime) (*parseTime, error) {
+func (l *logsCmd) round(e *env, c *context, startTime *parseTime) (*parseTime, error) {
 	v := make(url.Values)
 	v.Set("n", fmt.Sprint(l.num))
 	v.Set("level", l.level)
@@ -82,7 +82,7 @@ func (l *logsCmd) round(e *env, c *client, startTime *parseTime) (*parseTime, er
 		RawQuery: v.Encode(),
 	}
 	var rows []logResponse
-	if _, err := e.Client.Get(u, &rows); err != nil {
+	if _, err := e.ParseAPIClient.Get(u, &rows); err != nil {
 		return nil, stackerr.Wrap(err)
 	}
 	// logs come back in reverse

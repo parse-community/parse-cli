@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -31,9 +32,6 @@ func TestNewCmdDirs(t *testing.T) {
 		_, err = os.Stat(filepath.Join(h.env.Root, newProjectFile.dirname))
 		ensure.Nil(t, err)
 	}
-
-	_, err = os.Stat(filepath.Join(h.env.Root, configDir))
-	ensure.Nil(t, err)
 }
 
 func TestNewCmdContent(t *testing.T) {
@@ -52,30 +50,23 @@ func TestNewCmdContent(t *testing.T) {
 		ensure.DeepEqual(t, string(content), newProjectFile.content)
 	}
 
-	content, err := ioutil.ReadFile(filepath.Join(h.env.Root, legacyConfigFile))
+	content, err := ioutil.ReadFile(filepath.Join(h.env.Root, parseProject))
 	ensure.Nil(t, err)
-	ensure.DeepEqual(t, string(content), "{}")
-}
-
-func TestNewCmdConfigExists(t *testing.T) {
-	t.Parallel()
-
-	h, n := newNewCmdHarness(t)
-	defer h.Stop()
-
-	ensure.Nil(t, os.MkdirAll(filepath.Join(h.env.Root, "test", configDir), 0755))
-	ensure.Nil(t,
-		ioutil.WriteFile(filepath.Join(h.env.Root, "test", legacyConfigFile),
-			[]byte("{}"),
-			0600,
+	ensure.DeepEqual(t,
+		string(content),
+		fmt.Sprintf(
+			`{
+  "project_type" : %d,
+  "parse": {"jssdk":""}
+}`,
+			parseFormat,
 		),
 	)
 
-	h.env.In = ioutil.NopCloser(strings.NewReader("\n"))
-	ensure.Err(t,
-		n.cloneSampleCloudCode(h.env, &app{Name: "test"}, false),
-		regexp.MustCompile("unable to create Cloud Code at test."),
-	)
+	content, err = ioutil.ReadFile(filepath.Join(h.env.Root, parseLocal))
+	ensure.Nil(t, err)
+	ensure.DeepEqual(t, string(content), "{}")
+
 }
 
 func TestCurlCommand(t *testing.T) {
@@ -100,7 +91,17 @@ func TestShouldCreateNewApp(t *testing.T) {
 
 	n := &newCmd{}
 
-	h.env.In = ioutil.NopCloser(strings.NewReader("decide"))
-	decision := n.shouldCreateNewApp(h.env)
-	ensure.DeepEqual(t, decision, "decide")
+	h.env.In = ioutil.NopCloser(strings.NewReader("new"))
+	decision, err := n.promptCreateNewApp(h.env)
+	ensure.Nil(t, err)
+	ensure.DeepEqual(t, decision, "new")
+
+	h.env.In = ioutil.NopCloser(strings.NewReader("existing"))
+	decision, err = n.promptCreateNewApp(h.env)
+	ensure.Nil(t, err)
+	ensure.DeepEqual(t, decision, "existing")
+
+	h.env.In = ioutil.NopCloser(strings.NewReader("other"))
+	_, err = n.promptCreateNewApp(h.env)
+	ensure.Err(t, err, regexp.MustCompile("are the only valid options"))
 }
