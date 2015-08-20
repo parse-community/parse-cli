@@ -52,7 +52,7 @@ func newConfigureCmd(e *env) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "configure",
-		Short: "Configure various Parse settings.",
+		Short: "Configure various Parse settings",
 		Long:  "Configure various Parse settings like access tokens, project type, and more.",
 		Run: func(c *cobra.Command, args []string) {
 			c.Help()

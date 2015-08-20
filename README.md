@@ -13,15 +13,21 @@ It can be used to create new Parse apps, deploy Cloud Code to an app, view all r
 
 You can install `Parse Command Line Tool` by following instructions at [parse-cli](https://parse.com/apps/quickstart#cloud_code/).
 
-Alternatively, you can just type the following command (assuming you already have Go installed).
+Alternatively, you can just type the following command.
+
+NOTE: You should already have [Go](https://golang.org/doc/install) installed and GOPATH, GOROOT set to appropriate values.
+
 ```bash
-  go get github.com/ParsePlatform/parse-cli
+  go get -t github.com/ParsePlatform/parse-cli
 ```
+
 This installs a binary called `parse-cli` at `$GOPATH/bin`.
+Further, you can find the code for Parse CLI at: `$GOPATH/src/github.com/ParsePlatform/parse-cli`.
 
 The following commands are currently available in the `Parse Command Line Tool`:
 ```bash
   add         Adds a new Parse app to config in current Cloud Code directory
+  configure   Configure various Parse settings
   default     Sets or gets the default Parse app
   deploy      Deploys a Parse app
   develop     Monitors for changes to code and deploys, also tails parse logs
