@@ -50,7 +50,7 @@ func TestContDeployConfigErr(t *testing.T) {
 			0600,
 		),
 	)
-	h.env.Type = legacy
+	h.env.Type = legacyParseFormat
 
 	deployer := deployFunc(func(parseVersion string,
 		prevDeplInfo *deployInfo,

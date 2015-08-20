@@ -34,8 +34,8 @@ func TestLogWithoutFollow(t *testing.T) {
 			Body:       ioutil.NopCloser(strings.NewReader(jsonStr(t, rows))),
 		}, nil
 	})
-	h.env.Client = &Client{client: &parse.Client{Transport: ht}}
-	err := l.run(h.env, &client{})
+	h.env.ParseAPIClient = &ParseAPIClient{apiClient: &parse.Client{Transport: ht}}
+	err := l.run(h.env, &context{})
 	ensure.Nil(t, err)
 	ensure.DeepEqual(t, h.Out.String(), "baz\nfoo bar\n")
 }
@@ -100,8 +100,8 @@ func TestLogWithFollow(t *testing.T) {
 		}
 	}()
 
-	h.env.Client = &Client{client: &parse.Client{Transport: ht}}
-	err := l.run(h.env, &client{})
+	h.env.ParseAPIClient = &ParseAPIClient{apiClient: &parse.Client{Transport: ht}}
+	err := l.run(h.env, &context{})
 	close(stop)
 
 	ensure.Err(t, err, regexp.MustCompile(`parse: error with status=500 and body="a"`))

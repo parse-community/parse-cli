@@ -81,10 +81,10 @@ func getAuthHeaders(credentials *credentials, headers http.Header) http.Header {
 	if headers == nil {
 		headers = make(http.Header)
 	}
-	headers.Add("X-Parse-Email", credentials.email)
 	if credentials.token != "" {
 		headers.Add("X-Parse-Account-Key", credentials.token)
 	} else {
+		headers.Add("X-Parse-Email", credentials.email)
 		headers.Add("X-Parse-Password", credentials.password)
 	}
 	return headers
@@ -105,7 +105,7 @@ func fetchAppKeys(e *env, appID string) (*app, error) {
 	}
 	res := &app{}
 
-	if response, err := e.Client.Do(req, nil, res); err != nil {
+	if response, err := e.ParseAPIClient.Do(req, nil, res); err != nil {
 		if response.StatusCode == http.StatusUnauthorized {
 			return nil, errAuth
 		}
@@ -128,7 +128,7 @@ func (a *apps) restFetchApps(e *env) ([]*app, error) {
 		Results []*app `json:"results"`
 	}
 
-	if response, err := e.Client.Do(req, nil, &res); err != nil {
+	if response, err := e.ParseAPIClient.Do(req, nil, &res); err != nil {
 		if response.StatusCode == http.StatusUnauthorized {
 			return nil, errAuth
 		}
@@ -207,15 +207,12 @@ func (a *apps) restCreateApp(e *env, appName string) (*app, error) {
 	req := &http.Request{
 		Method: "POST",
 		URL:    &url.URL{Path: "apps"},
-		Header: make(http.Header),
+		Header: getAuthHeaders(&a.login.credentials, nil),
 		Body:   ioutil.NopCloser(jsonpipe.Encode(map[string]string{"appName": appName})),
 	}
 
-	req.Header.Add("X-Parse-Email", a.login.credentials.email)
-	req.Header.Add("X-Parse-Password", a.login.credentials.password)
-
 	var res app
-	if response, err := e.Client.Do(req, nil, &res); err != nil {
+	if response, err := e.ParseAPIClient.Do(req, nil, &res); err != nil {
 		if response != nil && response.StatusCode == http.StatusUnauthorized {
 			return nil, errAuth
 		}

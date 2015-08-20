@@ -191,7 +191,7 @@ func (d *deployCmd) uploadFile(filename, endpoint string, e *env,
 		Version string `json:"version"`
 	}
 
-	if _, err := e.Client.Do(req, nil, &res); err != nil {
+	if _, err := e.ParseAPIClient.Do(req, nil, &res); err != nil {
 		return "", stackerr.Wrap(err)
 	}
 
@@ -317,7 +317,7 @@ func (d *deployCmd) makeNewRelease(info *deployInfo, e *env) (deployInfo, error)
 	u := url.URL{
 		Path: "deploy",
 	}
-	_, err := e.Client.Post(&u, info, &res)
+	_, err := e.ParseAPIClient.Post(&u, info, &res)
 	if err != nil {
 		return res, stackerr.Wrap(err)
 	}
@@ -326,7 +326,7 @@ func (d *deployCmd) makeNewRelease(info *deployInfo, e *env) (deployInfo, error)
 
 func (d *deployCmd) getPrevDeplInfo(e *env) (*deployInfo, error) {
 	prevDeplInfo := &deployInfo{}
-	if _, err := e.Client.Get(&url.URL{Path: "deploy"}, prevDeplInfo); err != nil {
+	if _, err := e.ParseAPIClient.Get(&url.URL{Path: "deploy"}, prevDeplInfo); err != nil {
 		return nil, stackerr.Wrap(err)
 	}
 	legacy := len(prevDeplInfo.Checksums.Cloud) == 0 &&
@@ -341,7 +341,7 @@ func (d *deployCmd) getPrevDeplInfo(e *env) (*deployInfo, error) {
 			Checksums    map[string]string `json:"checksums,omitempty"`
 			Versions     map[string]string `json:"userFiles,omitempty"`
 		}
-		if _, err := e.Client.Get(&url.URL{Path: "deploy"}, &res); err != nil {
+		if _, err := e.ParseAPIClient.Get(&url.URL{Path: "deploy"}, &res); err != nil {
 			return nil, stackerr.Wrap(err)
 		}
 		prevDeplInfo.ReleaseName = res.ReleaseName
@@ -506,7 +506,7 @@ func (d *deployCmd) handleError(
 	return nil
 }
 
-func (d *deployCmd) run(e *env, c *client) error {
+func (d *deployCmd) run(e *env, c *context) error {
 	var prevErr error
 	for i := 0; i < d.Retries; i++ {
 		parseVersion := c.Config.getProjectConfig().Parse.JSSDK

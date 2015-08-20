@@ -9,9 +9,9 @@ import (
 	"github.com/facebookgo/ensure"
 )
 
-var defaulParseConfig = &parseConfig{
+var defaultParseConfig = &parseConfig{
 	projectConfig: &projectConfig{
-		Type:  legacy,
+		Type:  legacyParseFormat,
 		Parse: &parseProjectConfig{},
 	},
 }
@@ -103,7 +103,7 @@ func TestConfigMissing(t *testing.T) {
 	defer os.RemoveAll(dir)
 	c, err := configFromDir(dir)
 	ensure.True(t, c == nil)
-	ensure.Err(t, err, regexp.MustCompile("Command must be run in a directory containing a Parse project."))
+	ensure.Err(t, err, regexp.MustCompile("Command must be run inside a Parse project."))
 }
 
 func TestConfigGlobalMalformed(t *testing.T) {

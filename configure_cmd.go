@@ -13,8 +13,8 @@ type configureCmd struct {
 
 func (c *configureCmd) accessToken(e *env) error {
 	fmt.Fprintf(e.Out,
-		`Please enter the email id you used to register with Parse
-and an access token if you already generated it.
+		`Please enter an access token if you already generated it.
+
 If you do not have an access token or would like to generate a new one,
 please type: "y" to open the browser or "n" to continue: `,
 	)
@@ -22,16 +22,14 @@ please type: "y" to open the browser or "n" to continue: `,
 	c.login.helpCreateToken(e)
 
 	var credentials credentials
-	fmt.Fprintf(e.Out, "Email: ")
-	fmt.Fscanf(e.In, "%s\n", &credentials.email)
-	fmt.Fprintf(e.Out, "Account Key: ")
+	fmt.Fprintf(e.Out, "Access Token: ")
 	fmt.Fscanf(e.In, "%s\n", &credentials.token)
 
 	_, err := (&apps{login: login{credentials: credentials}}).restFetchApps(e)
 	if err != nil {
 		if err == errAuth {
 			fmt.Fprintf(e.Err,
-				`Sorry, we do not have a user with this email and access token.
+				`Sorry, the access token you provided is not valid.
 Please follow instructions at %s to generate a new access token.
 `,
 				keysURL,
@@ -54,7 +52,7 @@ func newConfigureCmd(e *env) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "configure",
-		Short: "Configure various Parse settings.",
+		Short: "Configure various Parse settings",
 		Long:  "Configure various Parse settings like access tokens, project type, and more.",
 		Run: func(c *cobra.Command, args []string) {
 			c.Help()

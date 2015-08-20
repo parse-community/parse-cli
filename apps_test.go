@@ -53,7 +53,7 @@ func newAppHarness(t testing.TB) (*Harness, []*app) {
 		email := r.Header.Get("X-Parse-Email")
 		password := r.Header.Get("X-Parse-Password")
 		token := r.Header.Get("X-Parse-Account-Key")
-		if !((email == "email" && password == "password") || (email == "email" && token == "token")) {
+		if !((email == "email" && password == "password") || (token == "token")) {
 			return &http.Response{
 				StatusCode: http.StatusUnauthorized,
 				Body:       ioutil.NopCloser(strings.NewReader(`{"error": "incorrect credentials"}`)),
@@ -107,7 +107,7 @@ func newAppHarness(t testing.TB) (*Harness, []*app) {
 		}
 	})
 
-	h.env.Client = &Client{client: &parse.Client{Transport: ht}}
+	h.env.ParseAPIClient = &ParseAPIClient{apiClient: &parse.Client{Transport: ht}}
 	return h, apps
 }
 
@@ -267,7 +267,7 @@ func TestNoPanicAppCreate(t *testing.T) {
 		ensure.DeepEqual(t, r.URL.Path, "/1/apps")
 		return nil, errors.New("nil response panic")
 	})
-	h.env.Client = &Client{client: &parse.Client{Transport: ht}}
+	h.env.ParseAPIClient = &ParseAPIClient{apiClient: &parse.Client{Transport: ht}}
 
 	var apps apps
 	app, err := apps.restCreateApp(h.env, "panic!")

@@ -3,11 +3,14 @@ package main
 import (
 	"errors"
 	"fmt"
+	"net/http"
 	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
 
+	"github.com/facebookgo/errgroup"
+	"github.com/facebookgo/parse"
 	"github.com/facebookgo/stackerr"
 )
 
@@ -103,4 +106,68 @@ func getHostFromURL(urlStr string) (string, error) {
 		return "", stackerr.Newf("%s is not a valid url", urlStr)
 	}
 	return server, nil
+}
+
+func checkIfSupported(e *env, version string) (string, error) {
+	v := make(url.Values)
+	v.Set("version", version)
+	req := &http.Request{
+		Method: "GET",
+		URL:    &url.URL{Path: "supported", RawQuery: v.Encode()},
+	}
+
+	var res struct {
+		Warning string `json:"warning"`
+	}
+
+	if _, err := e.ParseAPIClient.Do(req, nil, &res); err != nil {
+		return "", stackerr.Wrap(err)
+	}
+	return res.Warning, nil
+}
+
+// errorString returns the error string with our without the stack trace
+// depending on the environment variable. this exists because we want plain
+// messages for end users, but when we're working on the CLI we want the stack
+// trace for debugging.
+func errorString(e *env, err error) string {
+	type hasUnderlying interface {
+		HasUnderlying() error
+	}
+
+	parseErr := func(err error) error {
+		if apiErr, ok := err.(*parse.Error); ok {
+			return errors.New(apiErr.Message)
+		}
+		return err
+	}
+
+	lastErr := func(err error) error {
+		if serr, ok := err.(*stackerr.Error); ok {
+			if errs := stackerr.Underlying(serr); len(errs) != 0 {
+				err = errs[len(errs)-1]
+			}
+		} else {
+			if eu, ok := err.(hasUnderlying); ok {
+				err = eu.HasUnderlying()
+			}
+		}
+
+		return parseErr(err)
+	}
+
+	if !e.ErrorStack {
+		if merr, ok := err.(errgroup.MultiError); ok {
+			var multiError []error
+			for _, ierr := range []error(merr) {
+				multiError = append(multiError, lastErr(ierr))
+			}
+			err = errgroup.MultiError(multiError)
+		} else {
+			err = lastErr(err)
+		}
+		return parseErr(err).Error()
+	}
+
+	return err.Error()
 }

@@ -100,7 +100,7 @@ func newTriggersHarness(t testing.TB) *Harness {
 			Body:       ioutil.NopCloser(jsonpipe.Encode(body)),
 		}, nil
 	})
-	h.env.Client = &Client{client: &parse.Client{Transport: ht}}
+	h.env.ParseAPIClient = &ParseAPIClient{apiClient: &parse.Client{Transport: ht}}
 	return h
 }
 

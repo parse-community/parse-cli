@@ -16,7 +16,7 @@ type rollbackInfo struct {
 	ReleaseName string `json:"releaseName,omitEmpty"`
 }
 
-func (r *rollbackCmd) run(e *env, c *client) error {
+func (r *rollbackCmd) run(e *env, c *context) error {
 	var req rollbackInfo
 	message := "previous release"
 	if r.ReleaseName != "" {
@@ -27,7 +27,7 @@ func (r *rollbackCmd) run(e *env, c *client) error {
 	fmt.Fprintf(e.Out, "Rolling back to %s\n", message)
 
 	var response rollbackInfo
-	if _, err := e.Client.Post(&url.URL{Path: "deploy"},
+	if _, err := e.ParseAPIClient.Post(&url.URL{Path: "deploy"},
 		&req, &response); err != nil {
 		return stackerr.Newf("Rollback failed with %s", stackerr.Wrap(err))
 	}

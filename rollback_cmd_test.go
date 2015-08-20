@@ -28,7 +28,7 @@ func newRollbackCmdHarness(t testing.TB) *Harness {
 			Body:       ioutil.NopCloser(strings.NewReader(jsonStr(t, &res))),
 		}, nil
 	})
-	h.env.Client = &Client{client: &parse.Client{Transport: ht}}
+	h.env.ParseAPIClient = &ParseAPIClient{apiClient: &parse.Client{Transport: ht}}
 	return h
 }
 
@@ -70,6 +70,6 @@ func TestRollbackError(t *testing.T) {
 			Body:       ioutil.NopCloser(strings.NewReader(jsonStr(t, &res))),
 		}, nil
 	})
-	h.env.Client = &Client{client: &parse.Client{Transport: ht}}
+	h.env.ParseAPIClient = &ParseAPIClient{apiClient: &parse.Client{Transport: ht}}
 	ensure.Err(t, r.run(h.env, nil), regexp.MustCompile("something is wrong"))
 }

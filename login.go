@@ -99,7 +99,6 @@ func (l *login) getTokenCredentials(e *env) (*credentials, error) {
 		return nil, stackerr.Newf("could not find token for %s", server)
 	}
 	return &credentials{
-		email: machine.Login,
 		token: machine.Password,
 	}, nil
 }
@@ -120,9 +119,8 @@ func (l *login) updatedNetrcContent(
 	}
 	machine := tokens.FindMachine(server)
 	if machine == nil {
-		machine = tokens.NewMachine(server, credentials.email, credentials.token, "")
+		machine = tokens.NewMachine(server, "default", credentials.token, "")
 	} else {
-		machine.UpdateLogin(credentials.email)
 		machine.UpdatePassword(credentials.token)
 	}
 
@@ -169,13 +167,10 @@ func (l *login) authUserWithToken(e *env) error {
 	apps := &apps{login: login{credentials: *tokenCredentials}}
 	_, err = apps.restFetchApps(e)
 	if err == errAuth {
-		fmt.Fprintf(e.Err,
-			`Sorry, you have an invalid token associated with the email: %q.
-To avoid typing the email and password everytime,
-please type "parse login" and provide a valid token for the email.
-`,
-			tokenCredentials.email,
-		)
+		fmt.Fprintln(e.Err,
+			`Sorry, the token you configured is not valid.
+
+`)
 	}
 	if err != nil {
 		return stackerr.Wrap(err)
@@ -191,8 +186,13 @@ func (l *login) authUser(e *env) error {
 	}
 
 	apps := &apps{}
+	fmt.Fprintln(
+		e.Out,
+		`To avoid typing the email and password everytime,
+please type "parse configure token" and provide a valid access token.
 
-	fmt.Fprintln(e.Out, "Please log in to Parse using your email and password.")
+Please log in to Parse using your email and password.`,
+	)
 	for i := 0; i < numRetries; i++ {
 		err := l.populateCreds(e)
 		if err != nil {
@@ -220,6 +220,12 @@ func (l *login) helpCreateToken(e *env) {
 	var shouldOpen string
 	fmt.Fscanf(e.In, "%s\n", &shouldOpen)
 	if shouldOpen == "n" {
+		fmt.Fprintf(e.Out,
+			`Please open %q in the browser
+and follow instructions to create an access token.
+`,
+			keysURL,
+		)
 		return
 	}
 	err := open.Run(keysURL)

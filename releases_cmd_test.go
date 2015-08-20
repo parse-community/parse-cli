@@ -33,9 +33,9 @@ func TestReleasesCmd(t *testing.T) {
 			Body:       ioutil.NopCloser(strings.NewReader(jsonStr(t, rows))),
 		}, nil
 	})
-	h.env.Client = &Client{client: &parse.Client{Transport: ht}}
+	h.env.ParseAPIClient = &ParseAPIClient{apiClient: &parse.Client{Transport: ht}}
 
-	ensure.Nil(t, r.run(h.env, &client{}))
+	ensure.Nil(t, r.run(h.env, &context{}))
 
 	expected := `Name                            Description                     Date
 v1                              version 1                       time 1
@@ -50,9 +50,9 @@ func TestReleasesCmdError(t *testing.T) {
 	ht := transportFunc(func(r *http.Request) (*http.Response, error) {
 		return nil, stackerr.New("Throws error")
 	})
-	h.env.Client = &Client{client: &parse.Client{Transport: ht}}
+	h.env.ParseAPIClient = &ParseAPIClient{apiClient: &parse.Client{Transport: ht}}
 
-	ensure.NotNil(t, c.run(h.env, &client{}))
+	ensure.NotNil(t, c.run(h.env, &context{}))
 }
 
 func TestReleasesCmdPrintVersion(t *testing.T) {

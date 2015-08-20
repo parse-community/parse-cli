@@ -92,7 +92,7 @@ func (d *developCmd) handleError(e *env, err error, sleep func(time.Duration)) e
 	return err
 }
 
-func (d *developCmd) run(e *env, c *client) error {
+func (d *developCmd) run(e *env, c *context) error {
 	first := make(chan struct{})
 	go d.contDeploy(e,
 		deployFunc((&deployCmd{Verbose: d.Verbose}).deploy),
