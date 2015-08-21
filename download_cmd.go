@@ -1,11 +1,14 @@
 package main
 
 import (
+	"crypto/md5"
+	"errors"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"net/url"
 	"os"
 	"path/filepath"
-	"sync"
 
 	"github.com/facebookgo/errgroup"
 	"github.com/facebookgo/stackerr"
@@ -21,89 +24,94 @@ type releaseFiles struct {
 
 type fileMap map[string][]byte
 
-func (d *downloadCmd) writeFiles(files fileMap) error {
+func validateChecksum(path, checksum string) error {
+	file, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	hash := md5.New()
+	_, err = io.Copy(hash, file)
+	if err != nil {
+		return err
+	}
+
+	sum := fmt.Sprintf("%x", hash.Sum(nil))
+	if sum != checksum {
+		return errors.New("Invalid checksum")
+	}
+
+	return nil
+}
+
+func (d *downloadCmd) moveFiles(e *env, tempDir string, release releaseFiles) error {
 	var wg errgroup.Group
 	maxParallel := make(chan struct{}, maxOpenFD)
-	wg.Add(len(files))
+	wg.Add(len(release.UserFiles[cloudDir]) + len(release.UserFiles[hostingDir]))
 
-	writeFile := func(path string, data []byte) {
+	moveFile := func(oldPath, newPath, checksum string) {
 		defer func() {
 			wg.Done()
 			<-maxParallel
 		}()
 
-		dir := filepath.Dir(path)
-		err := os.MkdirAll(dir, os.ModeDir|os.ModePerm)
+		err := validateChecksum(oldPath, checksum)
 		if err != nil {
-			wg.Error(stackerr.Wrap(err))
+			wg.Error(err)
 			return
 		}
-		file, err := os.Create(path)
-		defer file.Close()
+		err = os.Rename(oldPath, newPath)
 		if err != nil {
-			wg.Error(stackerr.Wrap(err))
+			wg.Error(err)
 			return
 		}
-		_, err = file.Write(data)
+		err = validateChecksum(newPath, checksum)
 		if err != nil {
-			wg.Error(stackerr.Wrap(err))
+			wg.Error(err)
 			return
 		}
 	}
 
-	for path, data := range files {
+	oldDir := fmt.Sprintf("%s/%s/", tempDir, cloudDir)
+	newDir := fmt.Sprintf("%s/%s/", e.Root, cloudDir)
+	for file, checksum := range release.Checksums[cloudDir] {
 		maxParallel <- struct{}{}
-		go writeFile(path, data)
+		go moveFile(oldDir+file, newDir+file, checksum)
+	}
+
+	oldDir = fmt.Sprintf("%s/%s/", tempDir, hostingDir)
+	newDir = fmt.Sprintf("%s/%s/", e.Root, hostingDir)
+	for file, checksum := range release.Checksums[hostingDir] {
+		maxParallel <- struct{}{}
+		go moveFile(oldDir+file, newDir+file, checksum)
 	}
 
 	return wg.Wait()
 }
 
-func (d *downloadCmd) downloadScripts(e *env, release releaseFiles, files fileMap) error {
-	dir := fmt.Sprintf("%s/%s/", e.Root, cloudDir)
-	var wg errgroup.Group
-	maxParallel := make(chan struct{}, maxOpenFD)
-	wg.Add(len(release.UserFiles[cloudDir]))
-	var mutex sync.Mutex
-
-	downloadScript := func(file, version string) {
-		defer func() {
-			wg.Done()
-			<-maxParallel
-		}()
-
-		v := url.Values{}
-		v.Set("checksum", release.Checksums[cloudDir][file])
-		v.Set("version", version)
-		u := &url.URL{
-			Path:     fmt.Sprintf("scripts/%s", file),
-			RawQuery: v.Encode(),
-		}
-		var result string
-		_, err := e.ParseAPIClient.Get(u, &result)
-		if err != nil {
-			wg.Error(stackerr.Wrap(err))
-			return
-		}
-		mutex.Lock()
-		files[dir+file] = []byte(result)
-		defer mutex.Unlock()
+func writeFile(path string, data []byte) error {
+	dir := filepath.Dir(path)
+	err := os.MkdirAll(dir, os.ModeDir|os.ModePerm)
+	if err != nil {
+		return err
 	}
-
-	for file, version := range release.UserFiles[cloudDir] {
-		maxParallel <- struct{}{}
-		go downloadScript(file, version)
+	file, err := os.Create(path)
+	defer file.Close()
+	if err != nil {
+		return err
 	}
-
-	return wg.Wait()
+	_, err = file.Write(data)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
-func (d *downloadCmd) downloadHosted(e *env, release releaseFiles, files fileMap) error {
-	dir := fmt.Sprintf("%s/%s/", e.Root, hostingDir)
+func (d *downloadCmd) download(e *env, tempDir string, release releaseFiles) error {
 	var wg errgroup.Group
 	maxParallel := make(chan struct{}, maxOpenFD)
-	wg.Add(len(release.UserFiles[hostingDir]))
-	var mutex sync.Mutex
+	wg.Add(len(release.UserFiles[cloudDir]) + len(release.UserFiles[hostingDir]))
 
 	downloadHosted := func(file, version string) {
 		defer func() {
@@ -121,17 +129,54 @@ func (d *downloadCmd) downloadHosted(e *env, release releaseFiles, files fileMap
 		var result []byte
 		_, err := e.ParseAPIClient.Get(u, &result)
 		if err != nil {
-			wg.Error(stackerr.Wrap(err))
+			wg.Error(err)
 			return
 		}
-		mutex.Lock()
-		files[dir+file] = result
-		defer mutex.Unlock()
+
+		path := fmt.Sprintf("%s/%s/%s", tempDir, hostingDir, file)
+		err = writeFile(path, result)
+		if err != nil {
+			wg.Error(err)
+			return
+		}
+	}
+
+	downloadScript := func(file, version string) {
+		defer func() {
+			wg.Done()
+			<-maxParallel
+		}()
+
+		v := url.Values{}
+		v.Set("checksum", release.Checksums[cloudDir][file])
+		v.Set("version", version)
+		u := &url.URL{
+			Path:     fmt.Sprintf("scripts/%s", file),
+			RawQuery: v.Encode(),
+		}
+		var result string
+		_, err := e.ParseAPIClient.Get(u, &result)
+		if err != nil {
+			wg.Error(err)
+			return
+		}
+
+		path := fmt.Sprintf("%s/%s/%s", tempDir, cloudDir, file)
+		err = writeFile(path, []byte(result))
+		if err != nil {
+			wg.Error(err)
+			return
+		}
 	}
 
 	for file, version := range release.UserFiles[hostingDir] {
 		maxParallel <- struct{}{}
 		go downloadHosted(file, version)
+	}
+
+	for file, version := range release.UserFiles[cloudDir] {
+		maxParallel <- struct{}{}
+		go downloadScript(file, version)
 	}
 
 	return wg.Wait()
@@ -148,21 +193,19 @@ func (d *downloadCmd) run(e *env, c *context) error {
 		return stackerr.Wrap(err)
 	}
 
-	files := make(fileMap)
-
-	err = d.downloadHosted(e, release, files)
+	tempDir, err := ioutil.TempDir("", "parse-cli-download")
 	if err != nil {
-		return err
+		return stackerr.Wrap(err)
 	}
 
-	err = d.downloadScripts(e, release, files)
+	err = d.download(e, tempDir, release)
 	if err != nil {
-		return err
+		return stackerr.Wrap(err)
 	}
 
-	err = d.writeFiles(files)
+	err = d.moveFiles(e, tempDir, release)
 	if err != nil {
-		return err
+		return stackerr.Wrap(err)
 	}
 
 	fmt.Fprintln(e.Out, "Download successful.")
