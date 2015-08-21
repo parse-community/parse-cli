@@ -16,23 +16,21 @@ func TestConfigureAcessToken(t *testing.T) {
 	defer h.Stop()
 
 	c := configureCmd{login: login{tokenReader: strings.NewReader("")}}
-	h.env.In = ioutil.NopCloser(strings.NewReader("n\ntoken\n"))
-	ensure.Nil(t, c.accessToken(h.env))
-	ensure.DeepEqual(t,
+	h.env.In = ioutil.NopCloser(strings.NewReader("token\n"))
+	ensure.Nil(t, c.accountKey(h.env))
+	ensure.DeepEqual(
+		t,
 		h.Out.String(),
-		`Please enter an access token if you already generated it.
-
-If you do not have an access token or would like to generate a new one,
-please type: "y" to open the browser or "n" to continue: Please open "https://www.parse.com/account_keys" in the browser
-and follow instructions to create an access token.
-Access Token: Successfully stored credentials.
+		`
+Input your account key or press enter to generate a new one.
+Account Key: Successfully stored credentials.
 `)
-	h.env.In = ioutil.NopCloser(strings.NewReader("n\nemail\ninvalid\n"))
-	ensure.Err(t, c.accessToken(h.env), regexp.MustCompile("Please try again"))
+	h.env.In = ioutil.NopCloser(strings.NewReader("email\ninvalid\n"))
+	ensure.Err(t, c.accountKey(h.env), regexp.MustCompile("Please try again"))
 	ensure.DeepEqual(t,
 		h.Err.String(),
-		`Sorry, the access token you provided is not valid.
-Please follow instructions at https://www.parse.com/account_keys to generate a new access token.
+		`Sorry, the account key you provided is not valid.
+Please follow instructions at https://www.parse.com/account_keys to generate a new account key.
 `,
 	)
 }
