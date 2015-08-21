@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -19,7 +20,6 @@ func setupForDownload(t testing.TB) *Harness {
 	h := createParseProject(t)
 	ht := transportFunc(func(r *http.Request) (*http.Response, error) {
 		ensure.DeepEqual(t, r.FormValue("version"), "version")
-		ensure.DeepEqual(t, r.FormValue("checksum"), "checksum")
 		switch {
 		case scriptPath.MatchString(r.URL.Path):
 			return &http.Response{
@@ -29,7 +29,7 @@ func setupForDownload(t testing.TB) *Harness {
 		case hostedPath.MatchString(r.URL.Path):
 			return &http.Response{
 				StatusCode: http.StatusOK,
-				Body:       ioutil.NopCloser(strings.NewReader(`[]byte("content")`)),
+				Body:       ioutil.NopCloser(strings.NewReader(`[1, 1, 2, 3, 5, 8, 13]`)),
 			}, nil
 		default:
 			return &http.Response{
@@ -55,70 +55,84 @@ func getRelease() releaseFiles {
 		},
 		Checksums: map[string]map[string]string{
 			"cloud": map[string]string{
-				"main.js": "checksum",
+				"main.js": "9a0364b9e99bb480dd25e1f0284c8555",
 			},
 			"public": map[string]string{
-				"index.html": "checksum",
+				"index.html": "ea46dea1ca5f0b7a728aa3c2a87ae8a1",
 			},
 		},
 	}
 }
 
-func TestDownloadHosted(t *testing.T) {
+func TestDownloadDownload(t *testing.T) {
 	t.Parallel()
 	h := setupForDownload(t)
 	defer h.Stop()
 
 	d := downloadCmd{}
 	release := getRelease()
-	files := fileMap{}
-
-	_, ok := files[h.env.Root+"/public/index.html"]
-	ensure.False(t, ok)
-	err := d.downloadHosted(h.env, release, files)
+	tempDir, err := ioutil.TempDir("", "download")
 	ensure.Nil(t, err)
-	_, ok = files[h.env.Root+"/public/index.html"]
-	ensure.True(t, ok)
+	fmt.Println("root", h.env.Root)
+	fmt.Println("temp", tempDir)
+
+	for file := range release.UserFiles[cloudDir] {
+		_, err := os.Open(fmt.Sprintf("%s/%s/%s", tempDir, cloudDir, file))
+		ensure.NotNil(t, err)
+	}
+	for file := range release.UserFiles[hostingDir] {
+		_, err := os.Open(fmt.Sprintf("%s/%s/%s", tempDir, hostingDir, file))
+		ensure.NotNil(t, err)
+	}
+	err = d.download(h.env, tempDir, release)
+	ensure.Nil(t, err)
+	for file := range release.UserFiles[cloudDir] {
+		_, err := os.Open(fmt.Sprintf("%s/%s/%s", tempDir, cloudDir, file))
+		ensure.Nil(t, err)
+	}
+	for file := range release.UserFiles[hostingDir] {
+		_, err := os.Open(fmt.Sprintf("%s/%s/%s", tempDir, hostingDir, file))
+		ensure.Nil(t, err)
+	}
 }
 
-func TestDownloadScripts(t *testing.T) {
+func TestDownloadMoveFiles(t *testing.T) {
 	t.Parallel()
 	h := setupForDownload(t)
 	defer h.Stop()
 
-	d := downloadCmd{}
+	content := []byte("content")
 	release := getRelease()
-	files := fileMap{}
+	release.Checksums[cloudDir]["main.js"] = "9a0364b9e99bb480dd25e1f0284c8555"
+	release.Checksums[hostingDir]["index.html"] = "9a0364b9e99bb480dd25e1f0284c8555"
 
-	_, ok := files[h.env.Root+"/cloud/main.js"]
-	ensure.False(t, ok)
-	err := d.downloadScripts(h.env, release, files)
+	tempDir, err := ioutil.TempDir("", "move-files")
+	err = os.MkdirAll(fmt.Sprintf("%s/%s", tempDir, hostingDir),
+		os.ModeDir|os.ModePerm)
 	ensure.Nil(t, err)
-	_, ok = files[h.env.Root+"/cloud/main.js"]
-	ensure.True(t, ok)
-}
+	err = os.MkdirAll(fmt.Sprintf("%s/%s", tempDir, cloudDir),
+		os.ModeDir|os.ModePerm)
+	ensure.Nil(t, err)
+	fmt.Println("temp", tempDir)
+	ensure.Nil(t, err)
 
-func TestDownloadWriteFiles(t *testing.T) {
-	t.Parallel()
-	h := setupForDownload(t)
-	defer h.Stop()
+	err = ioutil.WriteFile(fmt.Sprintf("%s/%s/index.html", tempDir, hostingDir),
+		content,
+		os.ModePerm)
+	ensure.Nil(t, err)
+	err = ioutil.WriteFile(fmt.Sprintf("%s/%s/main.js", tempDir, cloudDir),
+		content,
+		os.ModePerm)
+	ensure.Nil(t, err)
 
 	d := downloadCmd{}
-	files := fileMap{
-		h.env.Root + "/scripts/main.js":  []byte("javascript"),
-		h.env.Root + "/cloud/index.html": []byte("html"),
-	}
-	err := d.writeFiles(files)
+	err = d.moveFiles(h.env, tempDir, release)
 	ensure.Nil(t, err)
-	for path, data := range files {
-		file, err := os.Open(path)
-		ensure.Nil(t, err)
-		content := make([]byte, len(data))
-		n, err := file.Read(content)
-		ensure.Nil(t, err)
-		ensure.DeepEqual(t, n, len(data))
-		ensure.DeepEqual(t, content, data)
-	}
+
+	readData, err := ioutil.ReadFile(fmt.Sprintf("%s/%s/%s", h.env.Root, hostingDir, "index.html"))
+	ensure.DeepEqual(t, readData, content)
+	readData, err = ioutil.ReadFile(fmt.Sprintf("%s/%s/%s", h.env.Root, cloudDir, "main.js"))
+	ensure.DeepEqual(t, readData, content)
 }
 
 func TestDownload(t *testing.T) {
@@ -126,14 +140,12 @@ func TestDownload(t *testing.T) {
 	h := setupForDownload(t)
 	defer h.Stop()
 
-	d := downloadCmd{}
 	release := getRelease()
-	files := fileMap{}
+	tempDir := os.TempDir()
 
-	err := d.downloadHosted(h.env, release, files)
+	d := downloadCmd{}
+	err := d.download(h.env, tempDir, release)
 	ensure.Nil(t, err)
-	err = d.downloadScripts(h.env, release, files)
-	ensure.Nil(t, err)
-	err = d.writeFiles(files)
+	err = d.moveFiles(h.env, tempDir, release)
 	ensure.Nil(t, err)
 }
