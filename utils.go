@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/facebookgo/errgroup"
 	"github.com/facebookgo/parse"
@@ -116,14 +117,27 @@ func checkIfSupported(e *env, version string) (string, error) {
 		URL:    &url.URL{Path: "supported", RawQuery: v.Encode()},
 	}
 
-	var res struct {
-		Warning string `json:"warning"`
+	type result struct {
+		warning string
+		err     error
 	}
 
-	if _, err := e.ParseAPIClient.Do(req, nil, &res); err != nil {
-		return "", stackerr.Wrap(err)
+	timeout := make(chan *result, 1)
+	go func() {
+		var res struct {
+			Warning string `json:"warning"`
+		}
+		_, err := e.ParseAPIClient.Do(req, nil, &res)
+		timeout <- &result{warning: res.Warning, err: err}
+	}()
+
+	select {
+	case res := <-timeout:
+		return res.warning, stackerr.Wrap(res.err)
+	case <-time.After(time.Duration(500) * time.Millisecond):
+		return "", nil
 	}
-	return res.Warning, nil
+	return "", nil
 }
 
 // errorString returns the error string with our without the stack trace
