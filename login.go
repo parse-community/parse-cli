@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/bgentry/go-netrc/netrc"
 	"github.com/bgentry/speakeasy"
@@ -168,8 +169,7 @@ func (l *login) authUserWithToken(e *env) error {
 	_, err = apps.restFetchApps(e)
 	if err == errAuth {
 		fmt.Fprintln(e.Err,
-			`Sorry, the token you configured is not valid.
-
+			`Sorry, the account key you configured is not valid.
 `)
 	}
 	if err != nil {
@@ -188,8 +188,11 @@ func (l *login) authUser(e *env) error {
 	apps := &apps{}
 	fmt.Fprintln(
 		e.Out,
-		`To avoid typing the email and password everytime,
-please type "parse configure token" and provide a valid access token.
+		`
+We’ve changed the way the CLI works.
+To save time logging in, you should create an account key.
+
+Type “parse configure accountkey” to create a new account key.
 
 Please log in to Parse using your email and password.`,
 	)
@@ -216,26 +219,27 @@ Please log in to Parse using your email and password.`,
 	return errAuth
 }
 
-func (l *login) helpCreateToken(e *env) {
-	var shouldOpen string
-	fmt.Fscanf(e.In, "%s\n", &shouldOpen)
-	if shouldOpen == "n" {
-		fmt.Fprintf(e.Out,
-			`Please open %q in the browser
-and follow instructions to create an access token.
+func (l *login) helpCreateToken(e *env) (string, error) {
+	for i := 0; i < 4; i++ {
+		fmt.Fprintln(e.Out, "\nInput your account key or press enter to generate a new one.")
+		fmt.Fprintf(e.Out, `Account Key: `)
+
+		var token string
+		fmt.Fscanf(e.In, "%s\n", &token)
+		token = strings.TrimSpace(token)
+		if token != "" {
+			return token, nil
+		}
+
+		err := open.Run(keysURL)
+		if err != nil {
+			fmt.Fprintf(e.Err,
+				`Sorry, we couldn’t open the browser for you.
+Go here to generate an account key: %q
 `,
-			keysURL,
-		)
-		return
+				keysURL,
+			)
+		}
 	}
-	err := open.Run(keysURL)
-	if err != nil {
-		fmt.Fprintf(e.Err,
-			`Sorry, we could not open %q in the browser.
-Please open %q in the browser to create a new account key.
-`,
-			keysURL,
-			keysURL,
-		)
-	}
+	return "", stackerr.New("Account key cannot be empty. Please try again.")
 }

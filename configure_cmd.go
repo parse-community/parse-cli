@@ -11,26 +11,19 @@ type configureCmd struct {
 	login login
 }
 
-func (c *configureCmd) accessToken(e *env) error {
-	fmt.Fprintf(e.Out,
-		`Please enter an access token if you already generated it.
+func (c *configureCmd) accountKey(e *env) error {
+	token, err := c.login.helpCreateToken(e)
+	if err != nil {
+		return err
+	}
 
-If you do not have an access token or would like to generate a new one,
-please type: "y" to open the browser or "n" to continue: `,
-	)
-
-	c.login.helpCreateToken(e)
-
-	var credentials credentials
-	fmt.Fprintf(e.Out, "Access Token: ")
-	fmt.Fscanf(e.In, "%s\n", &credentials.token)
-
-	_, err := (&apps{login: login{credentials: credentials}}).restFetchApps(e)
+	credentials := credentials{token: token}
+	_, err = (&apps{login: login{credentials: credentials}}).restFetchApps(e)
 	if err != nil {
 		if err == errAuth {
 			fmt.Fprintf(e.Err,
-				`Sorry, the access token you provided is not valid.
-Please follow instructions at %s to generate a new access token.
+				`Sorry, the account key you provided is not valid.
+Please follow instructions at %s to generate a new account key.
 `,
 				keysURL,
 			)
@@ -53,16 +46,17 @@ func newConfigureCmd(e *env) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "configure",
 		Short: "Configure various Parse settings",
-		Long:  "Configure various Parse settings like access tokens, project type, and more.",
+		Long:  "Configure various Parse settings like account keys, project type, and more.",
 		Run: func(c *cobra.Command, args []string) {
 			c.Help()
 		},
 	}
 	cmd.AddCommand(&cobra.Command{
-		Use:   "token",
-		Short: "Store Parse access token on machine",
-		Long:  "Stores Parse access token in ~/.parse/netrc.",
-		Run:   runNoArgs(e, c.accessToken),
+		Use:     "accountkey",
+		Short:   "Store Parse account key on machine",
+		Long:    "Stores Parse account key in ~/.parse/netrc.",
+		Run:     runNoArgs(e, c.accountKey),
+		Aliases: []string{"key"},
 	})
 	return cmd
 }

@@ -187,24 +187,10 @@ func (n *newCmd) configureSample(
 		return err
 	}
 
-	// at this point user has already set a default app for the project
-	// use its properties to fetch latest jssdk version and set it in config
-	config, err := configFromDir(e.Root)
-	if err != nil {
-		return err
-	}
-	defaultApp, err := config.app(config.getDefaultApp())
-	if err != nil {
-		return err
-	}
-	masterKey, err := defaultApp.getMasterKey(e)
-	if err != nil {
-		return err
-	}
 	e.ParseAPIClient = e.ParseAPIClient.WithCredentials(
 		parse.MasterKey{
-			ApplicationID: defaultApp.getApplicationID(),
-			MasterKey:     masterKey,
+			ApplicationID: app.ApplicationID,
+			MasterKey:     app.MasterKey,
 		},
 	)
 
