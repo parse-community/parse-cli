@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	version        = "2.2.2"
+	version        = "2.2.3"
 	cloudDir       = "cloud"
 	hostingDir     = "public"
 	defaultBaseURL = "https://api.parse.com/1/"
