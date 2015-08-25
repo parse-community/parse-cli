@@ -240,6 +240,15 @@ func (n *newCmd) run(e *env) error {
 	if err := n.configureSample(addCmd, app, nil, e); err != nil {
 		return err
 	}
+	if token := apps.login.credentials.token; token != "" {
+		email, err := apps.login.authToken(e, token)
+		if err != nil {
+			return err
+		}
+		if err := (&configureCmd{}).parserEmail(e, []string{email}); err != nil {
+			return err
+		}
+	}
 
 	fmt.Fprintf(e.Out, n.cloudCodeHelpMessage(e, app))
 	return nil

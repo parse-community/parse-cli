@@ -45,6 +45,10 @@ type projectConfig struct {
 	// Currently jssdk version is the only
 	// project level config for Parse type.
 	Parse *parseProjectConfig `json:"parse,omitempty"`
+	// ParserEmail is an email id of the Parse developer.
+	// It is associated with this project.
+	// It is used to fetch appropriate credentials from netrc.
+	ParserEmail string `json:"email,omitempty"`
 }
 
 func getConfigFile(e *env) string {

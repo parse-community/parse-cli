@@ -24,6 +24,7 @@ type env struct {
 	Root           string // project root
 	Server         string // parse api server
 	Type           int    // project type
+	ParserEmail    string // email associated with developer parse account
 	ErrorStack     bool
 	Out            io.Writer
 	Err            io.Writer
@@ -50,14 +51,15 @@ func main() {
 	}()
 
 	e := env{
-		Root:       os.Getenv("PARSE_ROOT"),
-		Server:     os.Getenv("PARSE_SERVER"),
-		ErrorStack: os.Getenv("PARSE_ERROR_STACK") == "1",
-		Out:        os.Stdout,
-		Err:        os.Stderr,
-		In:         os.Stdin,
-		Exit:       os.Exit,
-		Clock:      clock.New(),
+		Root:        os.Getenv("PARSE_ROOT"),
+		Server:      os.Getenv("PARSE_SERVER"),
+		ErrorStack:  os.Getenv("PARSE_ERROR_STACK") == "1",
+		ParserEmail: os.Getenv("PARSER_EMAIL"),
+		Out:         os.Stdout,
+		Err:         os.Stderr,
+		In:          os.Stdin,
+		Exit:        os.Exit,
+		Clock:       clock.New(),
 	}
 	if e.Root == "" {
 		cur, err := os.Getwd()
@@ -74,6 +76,9 @@ func main() {
 				os.Exit(1)
 			}
 			e.Type = config.getProjectConfig().Type
+			if e.ParserEmail == "" {
+				e.ParserEmail = config.getProjectConfig().ParserEmail
+			}
 		} else {
 			e.Type = legacyParseFormat
 			e.Root = getLegacyProjectRoot(&e, cur)
@@ -87,6 +92,7 @@ func main() {
 	if e.Server == "" {
 		e.Server = defaultBaseURL
 	}
+
 	apiClient, err := newParseAPIClient(&e)
 	if err != nil {
 		fmt.Fprintln(e.Err, err)

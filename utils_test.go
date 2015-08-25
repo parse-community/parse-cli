@@ -74,17 +74,27 @@ func TestABWithNumbers(t *testing.T) {
 
 func TestGetHostFromURL(t *testing.T) {
 	urlStr := "https://api.parse.com/1/"
-	host, err := getHostFromURL(urlStr)
+	host, err := getHostFromURL(urlStr, "")
 	ensure.Nil(t, err)
 	ensure.DeepEqual(t, host, "api.parse.com")
 
+	urlStr = "https://api.parse.com/1/"
+	host, err = getHostFromURL(urlStr, "yolo@earth.com")
+	ensure.Nil(t, err)
+	ensure.DeepEqual(t, host, "api.parse.com#yolo@earth.com")
+
 	urlStr = "https://api.example.com:8080/1/"
-	host, err = getHostFromURL(urlStr)
+	host, err = getHostFromURL(urlStr, "")
 	ensure.Nil(t, err)
 	ensure.DeepEqual(t, host, "api.example.com")
 
+	urlStr = "https://api.example.com:8080/1/"
+	host, err = getHostFromURL(urlStr, "yolo@earth.com")
+	ensure.Nil(t, err)
+	ensure.DeepEqual(t, host, "api.example.com#yolo@earth.com")
+
 	urlStr = "api.example.com:8080:90"
-	host, err = getHostFromURL(urlStr)
+	host, err = getHostFromURL(urlStr, "")
 	ensure.Err(t, err, regexp.MustCompile("not a valid url"))
 }
 
@@ -131,4 +141,15 @@ func TestIsSupportedError(t *testing.T) {
 	h.env.ParseAPIClient = &ParseAPIClient{apiClient: &parse.Client{Transport: ht}}
 	_, err := checkIfSupported(h.env, "2.0.2")
 	ensure.Err(t, err, regexp.MustCompile("not supported"))
+}
+
+func TestLastFour(t *testing.T) {
+	t.Parallel()
+
+	ensure.DeepEqual(t, last4(""), "")
+	ensure.DeepEqual(t, last4("a"), "a")
+	ensure.DeepEqual(t, last4("ab"), "ab")
+	ensure.DeepEqual(t, last4("abc"), "abc")
+	ensure.DeepEqual(t, last4("abcd"), "abcd")
+	ensure.DeepEqual(t, last4("abcdefg"), "***defg")
 }
