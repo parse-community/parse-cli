@@ -39,7 +39,7 @@ func setupForDownload(t testing.TB) *Harness {
 		}
 	})
 
-	h.env.Client = &Client{client: &parse.Client{Transport: ht}}
+	h.env.ParseAPIClient = &ParseAPIClient{apiClient: &parse.Client{Transport: ht}}
 	return h
 }
 

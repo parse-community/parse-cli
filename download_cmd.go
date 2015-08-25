@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/facebookgo/errgroup"
 	"github.com/facebookgo/stackerr"
 	"github.com/spf13/cobra"
 )
@@ -181,13 +182,13 @@ func (d *downloadCmd) download(e *env, tempDir string, release releaseFiles) err
 	return wg.Wait()
 }
 
-func (d *downloadCmd) run(e *env, c *client) error {
+func (d *downloadCmd) run(e *env, c *context) error {
 	var release releaseFiles
 
 	u := &url.URL{
 		Path: "deploy",
 	}
-	_, err := e.Client.Get(u, &release)
+	_, err := e.ParseAPIClient.Get(u, &release)
 	if err != nil {
 		return stackerr.Wrap(err)
 	}
