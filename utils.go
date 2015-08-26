@@ -97,7 +97,7 @@ func validateURL(urlStr string) error {
 	return nil
 }
 
-func getHostFromURL(urlStr string) (string, error) {
+func getHostFromURL(urlStr, email string) (string, error) {
 	netURL, err := url.Parse(urlStr)
 	if err != nil {
 		return "", stackerr.Wrap(err)
@@ -105,6 +105,9 @@ func getHostFromURL(urlStr string) (string, error) {
 	server := regexp.MustCompile(`(.*):\d+$`).ReplaceAllString(netURL.Host, "$1")
 	if server == "" {
 		return "", stackerr.Newf("%s is not a valid url", urlStr)
+	}
+	if email != "" {
+		return fmt.Sprintf("%s#%s", server, email), nil
 	}
 	return server, nil
 }
@@ -138,6 +141,14 @@ func checkIfSupported(e *env, version string) (string, error) {
 		return "", nil
 	}
 	return "", nil
+}
+
+func last4(str string) string {
+	l := len(str)
+	if l > 4 {
+		return fmt.Sprintf("%s%s", strings.Repeat("*", l-4), str[l-4:l])
+	}
+	return str
 }
 
 // errorString returns the error string with our without the stack trace

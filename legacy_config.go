@@ -16,6 +16,7 @@ var legacyConfigFile = filepath.Join(configDir, "global.json")
 type legacyConfig struct {
 	Global struct {
 		ParseVersion string `json:"parseVersion,omitempty"`
+		ParserEmail  string `json:"email,omitempty"`
 	} `json:"global,omitempty"`
 	Applications map[string]*parseAppConfig `json:"applications,omitempty"`
 }

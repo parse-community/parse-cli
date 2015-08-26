@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/facebookgo/stackerr"
@@ -23,6 +24,7 @@ func (l *listCmd) printListOfApps(e *env) error {
 		return stackerr.Wrap(err)
 	}
 	config.pprintApps(e)
+	fmt.Fprintln(e.Out, "")
 	return nil
 }
 

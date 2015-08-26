@@ -8,7 +8,8 @@ import (
 )
 
 type configureCmd struct {
-	login login
+	login     login
+	isDefault bool
 }
 
 func (c *configureCmd) accountKey(e *env) error {
@@ -17,27 +18,59 @@ func (c *configureCmd) accountKey(e *env) error {
 		return err
 	}
 
-	credentials := credentials{token: token}
-	_, err = (&apps{login: login{credentials: credentials}}).restFetchApps(e)
+	email, err := c.login.authToken(e, token)
 	if err != nil {
-		if err == errAuth {
-			fmt.Fprintf(e.Err,
-				`Sorry, the account key you provided is not valid.
-Please follow instructions at %s to generate a new account key.
-`,
-				keysURL,
-			)
-		} else {
-			fmt.Fprintf(e.Err, "Unable to validate token with error:\n%s\n", err)
-		}
-		return stackerr.New("Could not store credentials. Please try again.")
+		fmt.Fprintln(e.Err, "Could not store credentials. Please try again.\n")
+		return err
 	}
 
-	err = c.login.storeCredentials(e, &credentials)
+	if c.isDefault {
+		email = ""
+	}
+
+	creds, _ := (&login{}).getTokenCredentials(e, email)
+	if creds != nil {
+		if c.isDefault {
+			fmt.Fprintln(
+				e.Err,
+				"Note: this operation will overwrite the default account key",
+			)
+		} else {
+			fmt.Fprintf(
+				e.Err,
+				`Note: this operation will overwrite the account key:
+ %q
+for email: %q
+`,
+				last4(token),
+				email,
+			)
+		}
+	}
+
+	err = c.login.storeCredentials(e, email, &credentials{token: token})
 	if err == nil {
 		fmt.Fprintln(e.Out, "Successfully stored credentials.")
 	}
 	return stackerr.Wrap(err)
+}
+
+func (c *configureCmd) parserEmail(e *env, args []string) error {
+	config, err := configFromDir(e.Root)
+	if err != nil {
+		return err
+	}
+	if len(args) != 1 {
+		return fmt.Errorf("Invalid args: %v, only an email argument is expected.", args)
+	}
+	config.getProjectConfig().ParserEmail = args[0]
+	err = storeProjectConfig(e, config)
+	if err != nil {
+		fmt.Fprintln(e.Err, "Could not set parser email for project.")
+		return err
+	}
+	fmt.Fprintf(e.Out, "Successfully configured email for current project to: %q\n", args[0])
+	return nil
 }
 
 func newConfigureCmd(e *env) *cobra.Command {
@@ -51,12 +84,25 @@ func newConfigureCmd(e *env) *cobra.Command {
 			c.Help()
 		},
 	}
-	cmd.AddCommand(&cobra.Command{
+
+	keyCmd := &cobra.Command{
 		Use:     "accountkey",
 		Short:   "Store Parse account key on machine",
 		Long:    "Stores Parse account key in ~/.parse/netrc.",
 		Run:     runNoArgs(e, c.accountKey),
 		Aliases: []string{"key"},
-	})
+	}
+	keyCmd.Flags().BoolVarP(&c.isDefault, "default", "d", c.isDefault,
+		"Make this token a system default")
+	cmd.AddCommand(keyCmd)
+
+	emailCmd := &cobra.Command{
+		Use:   "email",
+		Short: "Configures the parser email for this project",
+		Long:  "Configures the parser email for current project.",
+		Run:   runWithArgs(e, c.parserEmail),
+	}
+	cmd.AddCommand(emailCmd)
+
 	return cmd
 }
