@@ -265,6 +265,7 @@ To save time logging in, you should create an account key.
 	fmt.Fprintln(
 		e.Out,
 		`Type "parse configure accountkey" to create a new account key.
+Read more at: https://parse.com/docs/js/guide#command-line-account-keys
 
 Please login to Parse using your email and password.`,
 	)
