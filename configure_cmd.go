@@ -50,7 +50,10 @@ for email: %q
 
 	err = c.login.storeCredentials(e, email, &credentials{token: token})
 	if err == nil {
-		fmt.Fprintln(e.Out, "Successfully stored credentials.")
+		if c.isDefault {
+			fmt.Fprintln(e.Out, "Successfully stored default account key.")
+		}
+		fmt.Fprintf(e.Out, "Successfully stored account key for: %q.\n", email)
 	}
 	return stackerr.Wrap(err)
 }

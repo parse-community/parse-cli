@@ -24,7 +24,7 @@ func TestConfigureAccessToken(t *testing.T) {
 		h.Out.String(),
 		`
 Input your account key or press enter to generate a new one.
-Account Key: Successfully stored credentials.
+Account Key: Successfully stored account key for: "email".
 `)
 	h.env.In = ioutil.NopCloser(strings.NewReader("email\ninvalid\n"))
 	ensure.Err(t, c.accountKey(h.env), regexp.MustCompile("is not valid"))

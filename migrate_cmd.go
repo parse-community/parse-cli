@@ -61,6 +61,7 @@ func (m *migrateCmd) run(e *env) error {
 			fmt.Fprintf(e.Err, "Failed to clean up: %q. Please remove this file manually.\n", project)
 		}
 	}
+	fmt.Fprintln(e.Out, "Successfully migrated to the preferred config format.")
 	return nil
 }
 
