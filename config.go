@@ -172,6 +172,7 @@ func storeProjectConfig(e *env, c config) error {
 		}
 		lconf := &legacyConfig{Applications: p.Applications}
 		lconf.Global.ParseVersion = p.projectConfig.Parse.JSSDK
+		lconf.Global.ParserEmail = p.projectConfig.ParserEmail
 		return writeLegacyConfigFile(
 			lconf,
 			filepath.Join(e.Root, legacyConfigFile),
