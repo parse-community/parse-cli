@@ -34,6 +34,7 @@ http://parse.com`,
 	c.AddCommand(newJsSdkCmd(e))
 	c.AddCommand(newListCmd(e))
 	c.AddCommand(newLogsCmd(e))
+	c.AddCommand(newMigrateCmd(e))
 	c.AddCommand(newNewCmd(e))
 	c.AddCommand(newReleasesCmd(e))
 	c.AddCommand(newRollbackCmd(e))
