@@ -68,8 +68,11 @@ func configFromDir(dir string) (config, error) {
 	}
 	if l != nil { // legacy config format
 		projectConfig := &projectConfig{
-			Type:  legacyParseFormat,
-			Parse: &parseProjectConfig{JSSDK: l.Global.ParseVersion},
+			Type: legacyParseFormat,
+			Parse: &parseProjectConfig{
+				JSSDK: l.Global.ParseVersion,
+			},
+			ParserEmail: l.Global.ParserEmail,
 		}
 		applications := l.Applications
 		if applications == nil {
