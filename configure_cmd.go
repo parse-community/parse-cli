@@ -2,14 +2,16 @@ package main
 
 import (
 	"fmt"
+	"io"
 
 	"github.com/facebookgo/stackerr"
 	"github.com/spf13/cobra"
 )
 
 type configureCmd struct {
-	login     login
-	isDefault bool
+	login       login
+	isDefault   bool
+	tokenReader io.Reader // for testing
 }
 
 func (c *configureCmd) accountKey(e *env) error {
@@ -28,14 +30,18 @@ func (c *configureCmd) accountKey(e *env) error {
 		email = ""
 	}
 
-	creds, _ := (&login{}).getTokenCredentials(e, email)
+	var l login
+	if c.tokenReader != nil {
+		l.tokenReader = c.tokenReader
+	}
+	foundEmail, creds, _ := l.getTokenCredentials(e, email)
 	if creds != nil {
 		if c.isDefault {
 			fmt.Fprintln(
 				e.Err,
 				"Note: this operation will overwrite the default account key",
 			)
-		} else {
+		} else if foundEmail {
 			fmt.Fprintf(
 				e.Err,
 				`Note: this operation will overwrite the account key:
@@ -52,8 +58,9 @@ for email: %q
 	if err == nil {
 		if c.isDefault {
 			fmt.Fprintln(e.Out, "Successfully stored default account key.")
+		} else {
+			fmt.Fprintf(e.Out, "Successfully stored account key for: %q.\n", email)
 		}
-		fmt.Fprintf(e.Out, "Successfully stored account key for: %q.\n", email)
 	}
 	return stackerr.Wrap(err)
 }

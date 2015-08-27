@@ -42,7 +42,7 @@ to reset your password`)
 	tokenErrMsgf = `Sorry, the account key: %q you provided is not valid.
 Please follow instructions at %q to generate a new one.
 `
-	keyNotFound = regexp.MustCompile("Could not find access key")
+	keyNotFound = regexp.MustCompile("Could not find account key")
 	parseNetrc  = filepath.Join(".parse", "netrc")
 )
 
@@ -95,49 +95,53 @@ func (l *login) getTokensReader() (io.Reader, error) {
 	return file, nil
 }
 
-func (l *login) getTokenCredentials(e *env, email string) (*credentials, error) {
+func (l *login) getTokenCredentials(e *env, email string) (bool, *credentials, error) {
 	reader, err := l.getTokensReader()
 	if err != nil {
-		return nil, stackerr.Wrap(err)
+		return false, nil, stackerr.Wrap(err)
 	}
 	tokens, err := netrc.Parse(reader)
 	if err != nil {
-		return nil, stackerr.Wrap(err)
+		return false, nil, stackerr.Wrap(err)
 	}
 	server, err := getHostFromURL(e.Server, email)
 	if err != nil {
-		return nil, err
+		return false, nil, err
 	}
 	machine := tokens.FindMachine(server)
 	if machine != nil {
-		return &credentials{
-			token: machine.Password,
-		}, nil
+		return true,
+			&credentials{
+				token: machine.Password,
+			}, nil
 	}
 
 	if email == "" {
-		return nil, stackerr.Newf("Could not find access key for %q", server)
+		return false, nil, stackerr.Newf("Could not find account key for %q", server)
 	}
 
 	// check for system default account key for the given server
 	// since we could not find account key for the given account (email)
 	server, err = getHostFromURL(e.Server, "")
 	if err != nil {
-		return nil, err
+		return false, nil, err
 	}
 	machine = tokens.FindMachine(server)
 	if machine != nil {
-		return &credentials{
-			token: machine.Password,
-		}, nil
+		return false,
+			&credentials{
+				token: machine.Password,
+			}, nil
 	}
-	return nil, stackerr.Newf(
-		`Could not find access key for email: %q,
+	return false,
+		nil,
+		stackerr.Newf(
+			`Could not find account key for email: %q,
 and default access key not configured for %q
 `,
-		email,
-		e.Server,
-	)
+			email,
+			e.Server,
+		)
 }
 
 func (l *login) updatedNetrcContent(
@@ -228,7 +232,7 @@ func (l *login) authToken(e *env, token string) (string, error) {
 }
 
 func (l *login) authUserWithToken(e *env) (string, error) {
-	tokenCredentials, err := l.getTokenCredentials(e, e.ParserEmail)
+	_, tokenCredentials, err := l.getTokenCredentials(e, e.ParserEmail)
 	if err != nil {
 		if stackerr.HasUnderlying(err, stackerr.MatcherFunc(accessKeyNotFound)) {
 			fmt.Fprintln(e.Err, errorString(e, err))
