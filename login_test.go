@@ -67,13 +67,72 @@ func TestGetTokenCredentials(t *testing.T) {
 			password token
 		`,
 	)
-	credentials, err := l.getTokenCredentials(h.env, "")
+	_, credentials, err := l.getTokenCredentials(h.env, "")
 	ensure.Nil(t, err)
 	ensure.DeepEqual(t, credentials.token, "token")
 
+	l.tokenReader = strings.NewReader(
+		`machine api.example.com
+			login default
+			password token
+		`,
+	)
 	h.env.Server = "http://api.parse.com"
-	credentials, err = l.getTokenCredentials(h.env, "")
+	_, credentials, err = l.getTokenCredentials(h.env, "")
 	ensure.Err(t, err, keyNotFound)
+
+	l = &login{}
+	h.env.Server = "http://api.example.com/1/"
+
+	l.tokenReader = strings.NewReader(
+		`machine api.example.com#email
+			login default
+			password token
+		`,
+	)
+	_, credentials, err = l.getTokenCredentials(h.env, "email")
+	ensure.Nil(t, err)
+	ensure.DeepEqual(t, credentials.token, "token")
+
+	l.tokenReader = strings.NewReader(
+		`machine api.example.com#email
+			login default
+			password token
+		`,
+	)
+	h.env.Server = "http://api.parse.com"
+	_, credentials, err = l.getTokenCredentials(h.env, "email")
+	ensure.Err(t, err, keyNotFound)
+
+	l = &login{}
+	h.env.Server = "http://api.example.com/1/"
+
+	l.tokenReader = strings.NewReader(
+		`machine api.example.com#email
+		login default
+		password token1
+machine api.example.com
+		login default
+		password token2
+`,
+	)
+	_, credentials, err = l.getTokenCredentials(h.env, "email")
+	ensure.Nil(t, err)
+	ensure.DeepEqual(t, credentials.token, "token1")
+
+	l.tokenReader = strings.NewReader(
+		`machine api.example.com#email
+		login default
+		password token1
+machine api.example.com
+		login default
+		password token2
+`,
+	)
+
+	_, credentials, err = l.getTokenCredentials(h.env, "xmail")
+	ensure.Nil(t, err)
+	ensure.DeepEqual(t, credentials.token, "token2")
 }
 
 func TestAuthUserWithToken(t *testing.T) {
