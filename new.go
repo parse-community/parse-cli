@@ -250,6 +250,18 @@ func (n *newCmd) run(e *env) error {
 		}
 	}
 
+	if decision == "e" || decision == "existing" {
+		fmt.Fprintln(e.Out, "Fetching Cloud Code for the selected app from Parse.")
+		d := &downloadCmd{force: true}
+		ctx, err := newContext(e, app.Name)
+		if err != nil {
+			return stackerr.Wrap(err)
+		}
+		if err := d.run(e, ctx); err != nil {
+			return stackerr.Wrap(err)
+		}
+	}
+
 	fmt.Fprintf(e.Out, n.cloudCodeHelpMessage(e, app))
 	return nil
 }

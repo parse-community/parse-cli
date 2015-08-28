@@ -29,6 +29,7 @@ http://parse.com`,
 	c.AddCommand(newDefaultCmd(e))
 	c.AddCommand(newDeployCmd(e))
 	c.AddCommand(newDevelopCmd(e))
+	c.AddCommand(newDownloadCmd(e))
 	c.AddCommand(newFunctionHooksCmd(e))
 	c.AddCommand(newGenerateCmd(e))
 	c.AddCommand(newJsSdkCmd(e))
