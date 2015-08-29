@@ -9,6 +9,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"sync/atomic"
 
 	"github.com/facebookgo/errgroup"
 	"github.com/facebookgo/stackerr"
@@ -48,8 +49,10 @@ func (d *downloadCmd) moveFiles(
 	var wg errgroup.Group
 
 	maxParallel := make(chan struct{}, maxOpenFD)
-	wg.Add(len(release.Versions.Cloud) + len(release.Versions.Public))
+	numFiles := len(release.Versions.Cloud) + len(release.Versions.Public)
+	wg.Add(numFiles)
 
+	var numErrors int32
 	moveFile := func(tempDir, kind, file, checksum string) {
 		defer func() {
 			wg.Done()
@@ -61,6 +64,7 @@ func (d *downloadCmd) moveFiles(
 			0755,
 		)
 		if err != nil {
+			atomic.AddInt32(&numErrors, 1)
 			wg.Error(stackerr.Wrap(err))
 			return
 		}
@@ -70,6 +74,7 @@ func (d *downloadCmd) moveFiles(
 			filepath.Join(e.Root, kind, file),
 		)
 		if err != nil {
+			atomic.AddInt32(&numErrors, 1)
 			wg.Error(stackerr.Wrap(err))
 			return
 		}
@@ -79,6 +84,7 @@ func (d *downloadCmd) moveFiles(
 			checksum,
 		)
 		if err != nil {
+			atomic.AddInt32(&numErrors, 1)
 			wg.Error(err)
 			return
 		}
@@ -102,7 +108,37 @@ func (d *downloadCmd) moveFiles(
 			checksum,
 		)
 	}
-	return wg.Wait()
+
+	if err := wg.Wait(); err != nil {
+		// could not move a single file so no corruption:w
+		if int(numErrors) == numFiles {
+			fmt.Fprintf(
+				e.Out,
+				`Failed to download Cloud Code to
+ %q
+Try "parse download" and manually move contents from
+the temporary download location.
+`,
+				e.Root,
+			)
+			return nil
+		}
+
+		fmt.Fprintf(
+			e.Out,
+			`Failed to download Cloud Code to
+ %q
+
+It might have corrupted contents, due to partially moved files.
+
+Try "parse download" and manually move contents from
+the temporary download location.
+`,
+			e.Root,
+		)
+		return err
+	}
+	return nil
 }
 
 func (d *downloadCmd) download(e *env, tempDir string, release *deployInfo) error {
@@ -221,21 +257,7 @@ func (d *downloadCmd) run(e *env, c *context) error {
 		return nil
 	}
 
-	err = d.moveFiles(e, tempDir, d.release)
-	if err != nil {
-		fmt.Fprintf(
-			e.Out,
-			`Failed to download Cloud Code to %q.
-Sorry! but %s might have corrupted contents.
-If you want to download Cloud Code from Parse,
-try again without the "-f" option.
-`,
-			e.Root,
-			e.Root,
-		)
-		return stackerr.Wrap(err)
-	}
-	return nil
+	return stackerr.Wrap(d.moveFiles(e, tempDir, d.release))
 }
 
 func newDownloadCmd(e *env) *cobra.Command {
@@ -247,6 +269,6 @@ func newDownloadCmd(e *env) *cobra.Command {
 		Run:   runWithClient(e, d.run),
 	}
 	cmd.Flags().BoolVarP(&d.force, "force", "f", d.force,
-		"Force will overwrite any content in the current project directory")
+		"Force will overwrite any files in the current project directory")
 	return cmd
 }

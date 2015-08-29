@@ -251,15 +251,13 @@ func (n *newCmd) run(e *env) error {
 	}
 
 	if decision == "e" || decision == "existing" {
-		fmt.Fprintln(e.Out, "Fetching Cloud Code for the selected app from Parse.")
-		d := &downloadCmd{force: true}
-		ctx, err := newContext(e, app.Name)
-		if err != nil {
-			return stackerr.Wrap(err)
-		}
-		if err := d.run(e, ctx); err != nil {
-			return stackerr.Wrap(err)
-		}
+		fmt.Fprintln(
+			e.Out,
+			`
+NOTE: If you like to fetch the latest deployed Cloud Code from Parse, 
+you can use the "parse download" command after finishing the set up.
+`,
+		)
 	}
 
 	fmt.Fprintf(e.Out, n.cloudCodeHelpMessage(e, app))
