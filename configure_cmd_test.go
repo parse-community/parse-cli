@@ -20,12 +20,11 @@ func TestConfigureAccountKey(t *testing.T) {
 
 	h.env.In = ioutil.NopCloser(strings.NewReader("token\n"))
 	ensure.Nil(t, c.accountKey(h.env))
-	ensure.DeepEqual(
+	ensure.StringContains(
 		t,
 		h.Out.String(),
 		`
 Input your account key or press enter to generate a new one.
-Account Key: Successfully stored account key for: "email".
 `)
 
 	h.env.In = ioutil.NopCloser(strings.NewReader("invalid\n"))
