@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"os"
 
 	"github.com/facebookgo/stackerr"
 	"github.com/spf13/cobra"
@@ -34,7 +35,24 @@ func (c *configureCmd) accountKey(e *env) error {
 	if c.tokenReader != nil {
 		l.tokenReader = c.tokenReader
 	}
-	foundEmail, creds, _ := l.getTokenCredentials(e, email)
+	foundEmail, creds, err := l.getTokenCredentials(e, email)
+	if stackerr.HasUnderlying(err, stackerr.MatcherFunc(os.IsNotExist)) && !c.isDefault {
+		fmt.Fprintln(
+			e.Out,
+			`
+
+Looks like you have not configured the default account key yet.
+Note that "parse new" and "parse list" can automatically pick up a default key if present.
+Otherwise, you'll have to explicitly set the PARSER_EMAIL environment variable
+for it to know which account key to use.
+Further, if the command line tool cannot find an account key for a configured email it will try to
+use the default account key
+
+To configure the default account key use:
+       "parse configure accountkey -d"`,
+		)
+	}
+
 	if creds != nil {
 		if c.isDefault {
 			fmt.Fprintln(
