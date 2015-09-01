@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"sort"
@@ -11,12 +12,24 @@ import (
 	"github.com/spf13/cobra"
 )
 
+type userFiles struct {
+	Cloud  map[string]interface{} `json:"cloud"`
+	Public map[string]interface{} `json:"public"`
+}
+
+type releasesResponse struct {
+	Version     string `json:"version"`
+	Description string `json:"description"`
+	Timestamp   string `json:"timestamp"`
+	UserFiles   string `json:"userFiles"`
+}
+
 type releasesCmd struct {
 	version string
 }
 
 func (r *releasesCmd) printFileNames(
-	fileVersions map[string]string,
+	fileVersions map[string]interface{},
 	e *env) {
 	var files []string
 	for name := range fileVersions {
@@ -26,32 +39,37 @@ func (r *releasesCmd) printFileNames(
 	fmt.Fprintln(e.Out, strings.Join(files, "\n"))
 }
 
-func (r *releasesCmd) printFiles(
-	version string,
-	releases []deployInfo,
+func (r *releasesCmd) printFiles(version string,
+	releases []releasesResponse,
 	e *env) error {
-	var files deployFileData
+	var files string
 	for _, release := range releases {
-		if release.ParseVersion == version {
-			files = release.Versions
+		if release.Version == version {
+			files = release.UserFiles
 			break
 		}
 	}
-	if len(files.Cloud) == 0 && len(files.Public) == 0 {
+	if files == "" {
 		return stackerr.Newf(`Unable to fetch files for release version: %s
 Note that you can list files for all releases shown in "parse releases"`,
 			version)
 	}
-	if len(files.Cloud) != 0 {
-		fmt.Fprintf(e.Out, "Deployed cloud code files:\n")
-		r.printFileNames(files.Cloud, e)
+	var versionFileNames userFiles
+	if err := json.NewDecoder(
+		strings.NewReader(files),
+	).Decode(&versionFileNames); err != nil {
+		return stackerr.Wrap(err)
 	}
-	if len(files.Cloud) != 0 && len(files.Public) != 0 {
+	if len(versionFileNames.Cloud) != 0 {
+		fmt.Fprintf(e.Out, "Deployed cloud code files:\n")
+		r.printFileNames(versionFileNames.Cloud, e)
+	}
+	if len(versionFileNames.Cloud) != 0 && len(versionFileNames.Public) != 0 {
 		fmt.Fprintln(e.Out)
 	}
-	if len(files.Public) != 0 {
+	if len(versionFileNames.Public) != 0 {
 		fmt.Fprintf(e.Out, "Deployed public hosting files:\n")
-		r.printFileNames(files.Public, e)
+		r.printFileNames(versionFileNames.Public, e)
 	}
 	return nil
 }
@@ -60,7 +78,7 @@ func (r *releasesCmd) run(e *env, c *context) error {
 	u := &url.URL{
 		Path: "releases",
 	}
-	var releasesList []deployInfo
+	var releasesList []releasesResponse
 	if _, err := e.ParseAPIClient.Get(u, &releasesList); err != nil {
 		return stackerr.Wrap(err)
 	}
@@ -77,7 +95,7 @@ func (r *releasesCmd) run(e *env, c *context) error {
 		if release.Description != "" {
 			description = release.Description
 		}
-		fmt.Fprintf(w, "%s\t%s\t%s\n", release.ParseVersion, description, release.Timestamp)
+		fmt.Fprintf(w, "%s\t%s\t%s\n", release.Version, description, release.Timestamp)
 	}
 	w.Flush()
 	return nil

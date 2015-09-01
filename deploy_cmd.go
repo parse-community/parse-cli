@@ -309,8 +309,7 @@ type deployInfo struct {
 	ParseVersion string         `json:"parseVersion,omitempty"`
 	Checksums    deployFileData `json:"checksums,omitempty"`
 	Versions     deployFileData `json:"userFiles,omitempty"`
-	Timestamp    string         `json:"timestamp,omitempty"` // only populated by get from releases
-	Warning      string         `json:"warning,omitempty"`   // only populated by post to deploy
+	Warning      string         `json:"warning,omitempty"` // only populated by post to deploy
 }
 
 func (d *deployCmd) makeNewRelease(info *deployInfo, e *env) (deployInfo, error) {

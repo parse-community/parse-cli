@@ -22,9 +22,9 @@ func newReleasesCmdHarness(t testing.TB) (*Harness, *releasesCmd) {
 func TestReleasesCmd(t *testing.T) {
 	h, r := newReleasesCmdHarness(t)
 	defer h.Stop()
-	rows := []deployInfo{
-		{ParseVersion: "v1", Description: "version 1", Timestamp: "time 1"},
-		{ParseVersion: "v2", Description: "version 2", Timestamp: "time 2"},
+	rows := []releasesResponse{
+		{Version: "v1", Description: "version 1", Timestamp: "time 1"},
+		{Version: "v2", Description: "version 2", Timestamp: "time 2"},
 	}
 	ht := transportFunc(func(r *http.Request) (*http.Response, error) {
 		ensure.DeepEqual(t, r.URL.Path, "/1/releases")
@@ -57,44 +57,23 @@ func TestReleasesCmdError(t *testing.T) {
 
 func TestReleasesCmdPrintVersion(t *testing.T) {
 	h, r := newReleasesCmdHarness(t)
-	releases := []deployInfo{
-		{
-			ParseVersion: "v1",
-			Versions: deployFileData{
-				Cloud: map[string]string{
-					"main.js":        "1",
-					"app.js":         "1",
-					"views/index.js": "1",
-				},
-			},
+	releases := []releasesResponse{
+		{Version: "v1",
+			UserFiles: `{
+			"cloud": {"main.js": "1", "app.js": "1", "views/index.js": "1"}
+			}`,
 		},
-		{
-			ParseVersion: "v2",
-			Versions: deployFileData{
-				Cloud: map[string]string{
-					"main.js":       "2",
-					"app.js":        "2",
-					"views/docs.js": "1",
-				},
-				Public: map[string]string{
-					"index.html": "2",
-					"docs.html":  "2",
-				},
-			},
+		{Version: "v2",
+			UserFiles: `{
+			"cloud": {"main.js": "2", "app.js": "2", "views/docs.js": "1"},
+			"public": {"index.html": "2", "docs.html": "2"}
+			}`,
 		},
-		{
-			ParseVersion: "v2",
-			Versions: deployFileData{
-				Cloud: map[string]string{
-					"v2_main.js":       "2",
-					"v2_app.js":        "2",
-					"views/v2_docs.js": "2",
-				},
-				Public: map[string]string{
-					"v2_index.html": "2",
-					"v2_docs.html":  "2",
-				},
-			},
+		{Version: "v2",
+			UserFiles: `{
+			"cloud": {"v2_main.js": "2", "v2_app.js": "2", "views/v2_docs.js": "2"},
+			"public": {"v2_index.html": "2", "v2_docs.html": "2"}
+			}`,
 		},
 	}
 	err := r.printFiles("", releases, h.env)
