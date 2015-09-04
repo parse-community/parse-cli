@@ -182,7 +182,7 @@ func (i *iosSymbolUploader) symbolConversionTool(baseDir string,
 			resp, err = http.Get(osxSymbolConverterDownloadURL)
 			if err == nil {
 				defer resp.Body.Close()
-				err = update.Apply(resp.Body, &update.Options{TargetPath: toolPath})
+				err = update.Apply(resp.Body, update.Options{TargetPath: toolPath})
 			}
 		}
 	} else {

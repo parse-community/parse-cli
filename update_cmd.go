@@ -78,7 +78,7 @@ func (u *updateCmd) updateCLI(e *env) (bool, error) {
 		return false, stackerr.Newf("Update failed with error: %v", err)
 	}
 	defer resp.Body.Close()
-	err = update.Apply(resp.Body, &update.Options{TargetPath: exec})
+	err = update.Apply(resp.Body, update.Options{TargetPath: exec})
 	if err != nil {
 		return false, stackerr.Newf("Update failed with error: %v", err)
 	}
