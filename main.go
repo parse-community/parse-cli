@@ -100,7 +100,13 @@ func main() {
 	}
 	e.ParseAPIClient = apiClient
 
-	message, err := checkIfSupported(&e, version)
+	var rootCmd *cobra.Command
+	switch e.Type {
+	case legacyParseFormat, parseFormat:
+		rootCmd = parseRootCmd(&e)
+	}
+
+	message, err := checkIfSupported(&e, version, os.Args[1:]...)
 	if err != nil {
 		fmt.Fprintln(e.Err, err)
 		os.Exit(1)
@@ -109,11 +115,6 @@ func main() {
 		fmt.Fprintln(e.Err, message)
 	}
 
-	var rootCmd *cobra.Command
-	switch e.Type {
-	case legacyParseFormat, parseFormat:
-		rootCmd = parseRootCmd(&e)
-	}
 	if err := rootCmd.Execute(); err != nil {
 		// Error is already printed in Execute()
 		os.Exit(1)

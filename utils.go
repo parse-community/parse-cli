@@ -112,9 +112,10 @@ func getHostFromURL(urlStr, email string) (string, error) {
 	return server, nil
 }
 
-func checkIfSupported(e *env, version string) (string, error) {
+func checkIfSupported(e *env, version string, args ...string) (string, error) {
 	v := make(url.Values)
 	v.Set("version", version)
+	v.Set("other", strings.Join(args, " "))
 	req := &http.Request{
 		Method: "GET",
 		URL:    &url.URL{Path: "supported", RawQuery: v.Encode()},
