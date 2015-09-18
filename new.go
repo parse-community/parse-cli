@@ -177,7 +177,7 @@ Type "(n)ew" or "(e)xisting": `,
 	return "", stackerr.New(msg)
 }
 
-func (n *newCmd) setupSample(e *env, app *app, isNew bool, nonInteractive bool) error {
+func (n *newCmd) setupSample(e *env, app *app, isNew bool, nonInteractive bool) (bool, error) {
 	found := isProjectDir(getProjectRoot(e, e.Root))
 	if !found {
 		root := getLegacyProjectRoot(e, e.Root)
@@ -185,7 +185,7 @@ func (n *newCmd) setupSample(e *env, app *app, isNew bool, nonInteractive bool) 
 		found = err == nil
 	}
 	if found {
-		return stackerr.New(
+		return false, stackerr.New(
 			`Detected that you are already inside a Parse project.
 Please refrain from creating a Parse project inside another Parse project.
 `,
@@ -202,13 +202,14 @@ Please refrain from creating a Parse project inside another Parse project.
 	} else {
 		cloudCodeDir, err = n.getCloudCodeDir(e, app.Name, isNew)
 		if err != nil {
-			return err
+			return false, err
 		}
 	}
 	e.Root = filepath.Join(e.Root, cloudCodeDir)
 
 	switch e.Type {
 	case parseFormat:
+		dumpTemplate := false
 		if !isNew && !n.noCode {
 			// if parse app was already created try to fetch cloud code and populate dir
 			e.ParseAPIClient = e.ParseAPIClient.WithCredentials(
@@ -221,19 +222,24 @@ Please refrain from creating a Parse project inside another Parse project.
 			d := &downloadCmd{destination: e.Root}
 			err = d.run(e, nil)
 			if err != nil {
-				fmt.Fprintln(
-					e.Out,
-					`
+				if err == errNoFiles {
+					dumpTemplate = true
+				} else {
+					fmt.Fprintln(
+						e.Out,
+						`
 NOTE: If you like to fetch the latest deployed Cloud Code from Parse, 
 you can use the "parse download" command after finishing the set up.
 This will download Cloud Code to a temporary location.
 `,
-				)
+					)
+				}
 			}
 		}
-		return n.cloneSampleCloudCode(e, app, isNew, isNew && !n.noCode)
+		dumpTemplate = (isNew || dumpTemplate) && !n.noCode
+		return dumpTemplate, n.cloneSampleCloudCode(e, app, isNew, dumpTemplate)
 	}
-	return stackerr.Newf("Unknown project type: %d", e.Type)
+	return false, stackerr.Newf("Unknown project type: %d", e.Type)
 }
 
 func (n *newCmd) configureSample(
@@ -294,7 +300,8 @@ func (n *newCmd) run(e *env) error {
 
 	e.Type = parseFormat
 
-	if err := n.setupSample(e, app, isNew, nonInteractive); err != nil {
+	dumpTemplate, err := n.setupSample(e, app, isNew, nonInteractive)
+	if err != nil {
 		return err
 	}
 	if err := n.configureSample(addCmd, app, nil, e); err != nil {
@@ -310,7 +317,10 @@ func (n *newCmd) run(e *env) error {
 		}
 	}
 
-	fmt.Fprintf(e.Out, n.cloudCodeHelpMessage(e, app))
+	if dumpTemplate {
+		fmt.Fprintf(e.Out, n.cloudCodeHelpMessage(e, app))
+	}
+
 	return nil
 }
 
