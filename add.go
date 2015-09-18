@@ -25,11 +25,20 @@ func (a *addCmd) addSelectedApp(
 	return stackerr.Newf("Unknown project type: %d.", e.Type)
 }
 
-func (a *addCmd) selectApp(e *env) (*app, error) {
+func (a *addCmd) selectApp(e *env, appName string) (*app, error) {
 	apps, err := a.apps.restFetchApps(e)
 	if err != nil {
 		return nil, err
 	}
+	if appName != "" {
+		for _, app := range apps {
+			if app.Name == appName {
+				return app, nil
+			}
+		}
+		return nil, stackerr.Newf("You are not a collaborator on app: %s", appName)
+	}
+
 	app, err := a.apps.selectApp(apps, "Select an App to add to config: ", e)
 	if err != nil {
 		return nil, err
@@ -42,7 +51,7 @@ func (a *addCmd) run(e *env, args []string) error {
 	if err := a.apps.login.authUser(e); err != nil {
 		return err
 	}
-	app, err := a.selectApp(e)
+	app, err := a.selectApp(e, "") // TODO (can also make this configurable)
 	if err != nil {
 		return err
 	}

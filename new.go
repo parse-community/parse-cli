@@ -13,6 +13,11 @@ import (
 
 type newCmd struct {
 	addApplication bool
+
+	noCode       bool   // do not setup/download code
+	createNewApp bool   // create a new app
+	parseAppName string // name of parse app
+	codeLocation string // location of cloud code project
 }
 
 var newProjectFiles = []struct {
@@ -52,16 +57,26 @@ you can test that it works, with:
 
 func (n *newCmd) getCloudCodeDir(e *env, appName string, isNew bool) (string, error) {
 	var cloudCodeDir string
-	fmt.Fprintf(e.Out,
-		`Awesome! Now it's time to setup some Cloud Code for the app: %q,
+	if isNew {
+		fmt.Fprintf(e.Out,
+			`Awesome! Now it's time to setup some Cloud Code for the app: %q,
 Next we will create a directory to hold your Cloud Code.
 Please enter the name to use for this directory,
 or hit ENTER to use %q as the directory name.
 
 Directory Name: `,
-		appName,
-		appName,
-	)
+			appName,
+			appName,
+		)
+	} else {
+		fmt.Fprintf(e.Out,
+			`Please enter the name of the folder where we can download the latest deployed
+Cloud Code for your app %q
+
+Directory Name: `,
+			appName,
+		)
+	}
 
 	fmt.Scanf("%s\n", &cloudCodeDir)
 	cloudCodeDir = strings.TrimSpace(cloudCodeDir)
@@ -134,7 +149,14 @@ func (n *newCmd) createConfigWithContent(path, content string) error {
 	return nil
 }
 
-func (n *newCmd) promptCreateNewApp(e *env) (string, error) {
+func (n *newCmd) promptCreateNewApp(e *env, nonInteractive bool) (string, error) {
+	if nonInteractive {
+		if n.createNewApp {
+			return "new", nil
+		}
+		return "existing", nil
+	}
+
 	msg := `"new" and "existing" are the only valid options.
 Please try again ...`
 
@@ -155,7 +177,7 @@ Type "(n)ew" or "(e)xisting": `,
 	return "", stackerr.New(msg)
 }
 
-func (n *newCmd) setupSample(e *env, app *app, isNew bool) error {
+func (n *newCmd) setupSample(e *env, app *app, isNew bool, nonInteractive bool) error {
 	found := isProjectDir(getProjectRoot(e, e.Root))
 	if !found {
 		root := getLegacyProjectRoot(e, e.Root)
@@ -170,9 +192,46 @@ Please refrain from creating a Parse project inside another Parse project.
 		)
 	}
 
+	var (
+		cloudCodeDir string
+		err          error
+	)
+
+	if nonInteractive {
+		cloudCodeDir = n.codeLocation
+	} else {
+		cloudCodeDir, err = n.getCloudCodeDir(e, app.Name, isNew)
+		if err != nil {
+			return err
+		}
+	}
+	e.Root = filepath.Join(e.Root, cloudCodeDir)
+
 	switch e.Type {
 	case parseFormat:
-		return n.cloneSampleCloudCode(e, app, isNew)
+		if !isNew && !n.noCode {
+			// if parse app was already created try to fetch cloud code and populate dir
+			e.ParseAPIClient = e.ParseAPIClient.WithCredentials(
+				parse.MasterKey{
+					ApplicationID: app.ApplicationID,
+					MasterKey:     app.MasterKey,
+				},
+			)
+
+			d := &downloadCmd{destination: e.Root}
+			err = d.run(e, nil)
+			if err != nil {
+				fmt.Fprintln(
+					e.Out,
+					`
+NOTE: If you like to fetch the latest deployed Cloud Code from Parse, 
+you can use the "parse download" command after finishing the set up.
+This will download Cloud Code to a temporary location.
+`,
+				)
+			}
+		}
+		return n.cloneSampleCloudCode(e, app, isNew, isNew && !n.noCode)
 	}
 	return stackerr.Newf("Unknown project type: %d", e.Type)
 }
@@ -212,7 +271,8 @@ func (n *newCmd) run(e *env) error {
 		err error
 	)
 
-	decision, err := n.promptCreateNewApp(e)
+	nonInteractive := n.parseAppName != "" && n.codeLocation != ""
+	decision, err := n.promptCreateNewApp(e, nonInteractive)
 	if err != nil {
 		return err
 	}
@@ -221,12 +281,12 @@ func (n *newCmd) run(e *env) error {
 	switch decision {
 	case "new", "n":
 		isNew = true
-		app, err = apps.createApp(e)
+		app, err = apps.createApp(e, n.parseAppName)
 		if err != nil {
 			return err
 		}
 	case "existing", "e":
-		app, err = addCmd.selectApp(e)
+		app, err = addCmd.selectApp(e, n.parseAppName)
 		if err != nil {
 			return err
 		}
@@ -234,7 +294,7 @@ func (n *newCmd) run(e *env) error {
 
 	e.Type = parseFormat
 
-	if err := n.setupSample(e, app, isNew); err != nil {
+	if err := n.setupSample(e, app, isNew, nonInteractive); err != nil {
 		return err
 	}
 	if err := n.configureSample(addCmd, app, nil, e); err != nil {
@@ -250,16 +310,6 @@ func (n *newCmd) run(e *env) error {
 		}
 	}
 
-	if decision == "e" || decision == "existing" {
-		fmt.Fprintln(
-			e.Out,
-			`
-NOTE: If you like to fetch the latest deployed Cloud Code from Parse, 
-you can use the "parse download" command after finishing the set up.
-`,
-		)
-	}
-
 	fmt.Fprintf(e.Out, n.cloudCodeHelpMessage(e, app))
 	return nil
 }
@@ -272,5 +322,13 @@ func newNewCmd(e *env) *cobra.Command {
 		Long:  `Creates a new Parse app and adds Cloud Code to an existing Parse app.`,
 		Run:   runNoArgs(e, nc.run),
 	}
+	cmd.Flags().BoolVarP(&nc.noCode, "config", "c", nc.noCode,
+		"Create a Cloud Code project only with configuration.")
+	cmd.Flags().BoolVarP(&nc.createNewApp, "new", "n", nc.createNewApp,
+		"Set this flag to true if you want to create a new Parse app.")
+	cmd.Flags().StringVarP(&nc.parseAppName, "app", "a", nc.parseAppName,
+		"Name of the Parse app you want to create or set up Cloud Code project for.")
+	cmd.Flags().StringVarP(&nc.codeLocation, "loc", "l", nc.codeLocation,
+		"Location at which the Cloud Code project will be setup.")
 	return cmd
 }

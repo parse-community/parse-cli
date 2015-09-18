@@ -67,6 +67,6 @@ func TestPrintListNoApps(t *testing.T) {
 	h.makeEmptyRoot()
 	defer h.Stop()
 	n := &newCmd{}
-	n.cloneSampleCloudCode(h.env, &app{Name: "test"}, false)
+	n.cloneSampleCloudCode(h.env, &app{Name: "test"}, false, true)
 	ensure.Nil(t, l.printListOfApps(h.env))
 }

@@ -17,8 +17,9 @@ import (
 )
 
 type downloadCmd struct {
-	force   bool
-	release *deployInfo
+	release     *deployInfo
+	destination string
+	force       bool
 }
 
 func (d *downloadCmd) verifyChecksum(path, checksum string) error {
@@ -44,7 +45,7 @@ func (d *downloadCmd) verifyChecksum(path, checksum string) error {
 
 func (d *downloadCmd) moveFiles(
 	e *env,
-	tempDir string,
+	destination string,
 	release *deployInfo) error {
 	var wg errgroup.Group
 
@@ -53,7 +54,7 @@ func (d *downloadCmd) moveFiles(
 	wg.Add(numFiles)
 
 	var numErrors int32
-	moveFile := func(tempDir, kind, file, checksum string) {
+	moveFile := func(destination, kind, file, checksum string) {
 		defer func() {
 			wg.Done()
 			<-maxParallel
@@ -70,7 +71,7 @@ func (d *downloadCmd) moveFiles(
 		}
 
 		err = os.Rename(
-			filepath.Join(tempDir, kind, file),
+			filepath.Join(destination, kind, file),
 			filepath.Join(e.Root, kind, file),
 		)
 		if err != nil {
@@ -93,7 +94,7 @@ func (d *downloadCmd) moveFiles(
 	for file, checksum := range release.Checksums.Cloud {
 		maxParallel <- struct{}{}
 		go moveFile(
-			tempDir,
+			destination,
 			cloudDir,
 			file,
 			checksum,
@@ -102,7 +103,7 @@ func (d *downloadCmd) moveFiles(
 	for file, checksum := range release.Checksums.Public {
 		maxParallel <- struct{}{}
 		go moveFile(
-			tempDir,
+			destination,
 			hostingDir,
 			file,
 			checksum,
@@ -141,7 +142,7 @@ the temporary download location.
 	return nil
 }
 
-func (d *downloadCmd) download(e *env, tempDir string, release *deployInfo) error {
+func (d *downloadCmd) download(e *env, destination string, release *deployInfo) error {
 	var wg errgroup.Group
 	maxParallel := make(chan struct{}, maxOpenFD)
 	wg.Add(len(release.Versions.Cloud) + len(release.Versions.Public))
@@ -166,7 +167,7 @@ func (d *downloadCmd) download(e *env, tempDir string, release *deployInfo) erro
 			return
 		}
 
-		path := path.Join(tempDir, hostingDir, file)
+		path := path.Join(destination, hostingDir, file)
 		if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
 			wg.Error(stackerr.Wrap(err))
 			return
@@ -201,7 +202,7 @@ func (d *downloadCmd) download(e *env, tempDir string, release *deployInfo) erro
 			return
 		}
 
-		path := path.Join(tempDir, cloudDir, file)
+		path := path.Join(destination, cloudDir, file)
 		if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
 			wg.Error(stackerr.Wrap(err))
 			return
@@ -234,30 +235,35 @@ func (d *downloadCmd) download(e *env, tempDir string, release *deployInfo) erro
 }
 
 func (d *downloadCmd) run(e *env, c *context) error {
-	if d.release == nil {
-		latestRelease, err := (&deployCmd{}).getPrevDeplInfo(e)
+	var err error
+
+	latestRelease := d.release
+	if latestRelease == nil {
+		latestRelease, err = (&deployCmd{}).getPrevDeplInfo(e)
 		if err != nil {
 			return err
 		}
-		d.release = latestRelease
 	}
 
-	tempDir, err := ioutil.TempDir("", "parse_code_")
-	if err != nil {
-		return stackerr.Wrap(err)
+	destination := d.destination
+	if destination == "" {
+		destination, err = ioutil.TempDir("", "parse_code_")
+		if err != nil {
+			return stackerr.Wrap(err)
+		}
 	}
 
-	err = d.download(e, tempDir, d.release)
+	err = d.download(e, destination, latestRelease)
 	if err != nil {
 		fmt.Fprintln(e.Err, "Failed to download Cloud Code.")
 		return stackerr.Wrap(err)
 	}
 	if !d.force {
-		fmt.Fprintf(e.Out, "Successfully downloaded Cloud Code to %q.\n", tempDir)
+		fmt.Fprintf(e.Out, "Successfully downloaded Cloud Code to %q.\n", destination)
 		return nil
 	}
 
-	return stackerr.Wrap(d.moveFiles(e, tempDir, d.release))
+	return stackerr.Wrap(d.moveFiles(e, destination, latestRelease))
 }
 
 func newDownloadCmd(e *env) *cobra.Command {
@@ -265,10 +271,14 @@ func newDownloadCmd(e *env) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "download [app]",
 		Short: "Downloads the Cloud Code project",
-		Long:  "Downloads the Cloud Code project at a temporary location.",
-		Run:   runWithClient(e, d.run),
+		Long: `Downloads the Cloud Code project at a given location,
+or at a temporary location if nothing is explicitly provided through the -l flag.
+`,
+		Run: runWithClient(e, d.run),
 	}
 	cmd.Flags().BoolVarP(&d.force, "force", "f", d.force,
 		"Force will overwrite any files in the current project directory")
+	cmd.Flags().StringVarP(&d.destination, "location", "l", d.destination,
+		"Download Cloud Code project at the given location.")
 	return cmd
 }

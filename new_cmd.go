@@ -8,17 +8,8 @@ import (
 	"github.com/facebookgo/stackerr"
 )
 
-func (n *newCmd) cloneSampleCloudCode(e *env, app *app, isNew bool) error {
-	cloudCodeDir, err := n.getCloudCodeDir(e, app.Name, isNew)
-	if err != nil {
-		return err
-	}
-	e.Root = filepath.Join(e.Root, cloudCodeDir)
-
-	if err != nil {
-		return err
-	}
-	err = os.MkdirAll(e.Root, 0755)
+func (n *newCmd) cloneSampleCloudCode(e *env, app *app, isNew bool, dumpTemplate bool) error {
+	err := os.MkdirAll(e.Root, 0755)
 	if err != nil {
 		return stackerr.Wrap(err)
 	}
@@ -42,6 +33,11 @@ func (n *newCmd) cloneSampleCloudCode(e *env, app *app, isNew bool) error {
 	)
 	if err != nil {
 		return err
+	}
+
+	// no need to setup the template code
+	if !dumpTemplate {
+		return nil
 	}
 
 	for _, info := range newProjectFiles {

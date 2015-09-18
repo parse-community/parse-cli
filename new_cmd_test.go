@@ -24,7 +24,7 @@ func TestNewCmdDirs(t *testing.T) {
 	h, n := newNewCmdHarness(t)
 	defer h.Stop()
 
-	ensure.Nil(t, n.cloneSampleCloudCode(h.env, &app{Name: "test"}, false))
+	ensure.Nil(t, n.cloneSampleCloudCode(h.env, &app{Name: "test"}, false, true))
 
 	var err error
 
@@ -40,7 +40,7 @@ func TestNewCmdContent(t *testing.T) {
 	h, n := newNewCmdHarness(t)
 	defer h.Stop()
 
-	ensure.Nil(t, n.cloneSampleCloudCode(h.env, &app{Name: "test"}, false))
+	ensure.Nil(t, n.cloneSampleCloudCode(h.env, &app{Name: "test"}, false, true))
 
 	for _, newProjectFile := range newProjectFiles {
 		content, err := ioutil.ReadFile(
@@ -92,16 +92,16 @@ func TestShouldCreateNewApp(t *testing.T) {
 	n := &newCmd{}
 
 	h.env.In = ioutil.NopCloser(strings.NewReader("new"))
-	decision, err := n.promptCreateNewApp(h.env)
+	decision, err := n.promptCreateNewApp(h.env, false)
 	ensure.Nil(t, err)
 	ensure.DeepEqual(t, decision, "new")
 
 	h.env.In = ioutil.NopCloser(strings.NewReader("existing"))
-	decision, err = n.promptCreateNewApp(h.env)
+	decision, err = n.promptCreateNewApp(h.env, false)
 	ensure.Nil(t, err)
 	ensure.DeepEqual(t, decision, "existing")
 
 	h.env.In = ioutil.NopCloser(strings.NewReader("other"))
-	_, err = n.promptCreateNewApp(h.env)
+	_, err = n.promptCreateNewApp(h.env, false)
 	ensure.Err(t, err, regexp.MustCompile("are the only valid options"))
 }

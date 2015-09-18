@@ -222,7 +222,7 @@ func (a *apps) restCreateApp(e *env, appName string) (*app, error) {
 	return &res, nil
 }
 
-func (a *apps) createApp(e *env) (*app, error) {
+func (a *apps) createApp(e *env, givenName string) (*app, error) {
 	apps, err := a.restFetchApps(e)
 	if err != nil {
 		return nil, err
@@ -232,10 +232,16 @@ func (a *apps) createApp(e *env) (*app, error) {
 		appNames[app.Name] = struct{}{}
 	}
 	for i := 0; i < numRetries; i++ {
-		appName, err := a.getAppName(e)
-		if err != nil {
-			return nil, err
+		var appName string
+		if givenName != "" {
+			appName = givenName
+		} else {
+			appName, err = a.getAppName(e)
+			if err != nil {
+				return nil, err
+			}
 		}
+
 		if _, ok := appNames[appName]; ok {
 			fmt.Fprintf(e.Out,
 				`Hey! you already created an app named %q.

@@ -27,7 +27,7 @@ func TestConfigFromDirFormatType(t *testing.T) {
 	h.makeEmptyRoot()
 	defer h.Stop()
 
-	ensure.Nil(t, (&newCmd{}).cloneSampleCloudCode(h.env, &app{Name: "test"}, false))
+	ensure.Nil(t, (&newCmd{}).cloneSampleCloudCode(h.env, &app{Name: "test"}, false, true))
 
 	c, err := configFromDir(h.env.Root)
 	ensure.Nil(t, err)

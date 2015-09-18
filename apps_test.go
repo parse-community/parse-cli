@@ -234,7 +234,7 @@ func TestCreateNewApp(t *testing.T) {
 
 	a := defaultApps
 	h.env.In = ioutil.NopCloser(strings.NewReader("D"))
-	app, err := a.createApp(h.env)
+	app, err := a.createApp(h.env, "")
 	ensure.Nil(t, err)
 
 	ensure.Nil(t, a.printApp(h.env, app))
