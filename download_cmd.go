@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/md5"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -21,6 +22,8 @@ type downloadCmd struct {
 	destination string
 	force       bool
 }
+
+var errNoFiles = errors.New("Nothing to download. Not yet deployed to the app.")
 
 func (d *downloadCmd) verifyChecksum(path, checksum string) error {
 	file, err := os.Open(path)
@@ -242,6 +245,9 @@ func (d *downloadCmd) run(e *env, c *context) error {
 		latestRelease, err = (&deployCmd{}).getPrevDeplInfo(e)
 		if err != nil {
 			return err
+		}
+		if len(latestRelease.Versions.Cloud) == 0 && len(latestRelease.Versions.Public) == 0 {
+			return errNoFiles
 		}
 	}
 
