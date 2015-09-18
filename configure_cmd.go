@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sort"
+	"strconv"
 
 	"github.com/facebookgo/stackerr"
 	"github.com/spf13/cobra"
@@ -119,6 +121,70 @@ func (c *configureCmd) parserEmail(e *env, args []string) error {
 	return nil
 }
 
+func (c *configureCmd) projectType(e *env, args []string) error {
+	config, err := configFromDir(e.Root)
+	if err != nil {
+		return err
+	}
+	if len(args) > 1 {
+		return stackerr.Newf("Invalid args: %v, only an optional project type argument is expected.", args)
+	}
+	validTypes := map[string]int{"parse": parseFormat}
+	invertedTypes := map[int]string{parseFormat: "parse"}
+	numKeys := len(validTypes)
+	var validKeys []string
+	for key := range validTypes {
+		validKeys = append(validKeys, key)
+	}
+	sort.Strings(validKeys)
+	var selectionString string
+	for n, key := range validKeys {
+		selectionString += fmt.Sprintf("%d: %s\n", 1+n, key)
+	}
+
+	selectedProjectType := -1
+	if len(args) != 0 {
+		projectType, ok := validTypes[args[0]]
+		if !ok {
+			return stackerr.Newf("Invalid projectType: %v, valid types are: \n%s", selectionString)
+		}
+		selectedProjectType = projectType
+	}
+
+	for i := 0; i < 3; i++ {
+		fmt.Fprintf(e.Out, `Select from the listed project types:
+%s
+Enter a number between 1 and %d: `,
+			selectionString,
+			numKeys,
+		)
+		var selection string
+		fmt.Fscanf(e.In, "%s\n", &selection)
+		num, err := strconv.Atoi(selection)
+		if err != nil || num < 1 || num > numKeys {
+			fmt.Fprintf(e.Err, "Invalid selection. Please enter a number between 1 and %d\n", numKeys)
+			continue
+		}
+		projectType, ok := validTypes[validKeys[num-1]]
+		if !ok {
+			return stackerr.Newf("Invalid projectType: %v, valid types are: \n%s", selectionString)
+		}
+		selectedProjectType = projectType
+		break
+	}
+	if selectedProjectType == -1 {
+		return stackerr.Newf("Could not make a selection. Please try again.")
+	}
+
+	config.getProjectConfig().Type = selectedProjectType
+	if err := storeProjectConfig(e, config); err != nil {
+		fmt.Fprintln(e.Err, "Could not save selected project type to project config")
+		return err
+	}
+	fmt.Fprintf(e.Out, "Successfully set project type to: %v\n", invertedTypes[selectedProjectType])
+	return nil
+}
+
 func newConfigureCmd(e *env) *cobra.Command {
 	var c configureCmd
 
@@ -143,12 +209,21 @@ func newConfigureCmd(e *env) *cobra.Command {
 	cmd.AddCommand(keyCmd)
 
 	emailCmd := &cobra.Command{
-		Use:   "email",
-		Short: "Configures the parser email for this project",
-		Long:  "Configures the parser email for current project.",
-		Run:   runWithArgs(e, c.parserEmail),
+		Use:     "email",
+		Short:   "Configures the parser email for this project",
+		Long:    "Configures the parser email for current project.",
+		Run:     runWithArgs(e, c.parserEmail),
+		Aliases: []string{"user"},
 	}
 	cmd.AddCommand(emailCmd)
+
+	projectCmd := &cobra.Command{
+		Use:   "project",
+		Short: "Set the project type to one among listed options",
+		Long:  "Set the project type to one among listed options. For instance, 'parse'",
+		Run:   runWithArgs(e, c.projectType),
+	}
+	cmd.AddCommand(projectCmd)
 
 	return cmd
 }

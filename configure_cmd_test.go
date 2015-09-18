@@ -118,3 +118,35 @@ func TestParserEmail(t *testing.T) {
 	ensure.Err(t, c.parserEmail(h.env, nil), regexp.MustCompile("Invalid args:"))
 	ensure.Err(t, c.parserEmail(h.env, []string{"a", "b"}), regexp.MustCompile("Invalid args:"))
 }
+
+func TestProjectType(t *testing.T) {
+	t.Parallel()
+	h := newHarness(t)
+	defer h.Stop()
+
+	h.makeEmptyRoot()
+	ensure.Nil(t, (&newCmd{}).cloneSampleCloudCode(h.env, &app{Name: "test"}, false, false))
+
+	c := &configureCmd{}
+	err := c.projectType(h.env, []string{"1", "2"})
+	ensure.Err(t, err, regexp.MustCompile("only an optional project type argument is expected"))
+
+	h.env.In = ioutil.NopCloser(strings.NewReader("invalid\n"))
+	err = c.projectType(h.env, nil)
+	ensure.StringContains(t, h.Err.String(), "Invalid selection. Please enter a number")
+	ensure.Err(t, err, regexp.MustCompile("Could not make a selection. Please try again."))
+	h.Err.Reset()
+	h.Out.Reset()
+
+	h.env.In = ioutil.NopCloser(strings.NewReader("0\n"))
+	err = c.projectType(h.env, nil)
+	ensure.StringContains(t, h.Err.String(), "Please enter a number between 1 and")
+	ensure.Err(t, err, regexp.MustCompile("Could not make a selection. Please try again."))
+	h.Err.Reset()
+	h.Out.Reset()
+
+	h.env.In = ioutil.NopCloser(strings.NewReader("1\n"))
+	err = c.projectType(h.env, nil)
+	ensure.StringContains(t, h.Out.String(), "Successfully set project type to: parse")
+	ensure.Nil(t, err)
+}
