@@ -27,7 +27,7 @@ func newDefaultCmdHarness(t testing.TB) (*Harness, *defaultCmd, *parseConfig) {
 	h := newHarness(t)
 	h.makeEmptyRoot()
 
-	ensure.Nil(t, (&newCmd{}).cloneSampleCloudCode(h.env, &app{Name: "test"}, false, true))
+	ensure.Nil(t, (&newCmd{}).cloneSampleCloudCode(h.env, true))
 
 	config := newDefaultParseConfig(t, h)
 	h.Out.Reset()
@@ -97,7 +97,7 @@ func newLegacyDefaultCmdHarness(t testing.TB) (*Harness, *defaultCmd, *parseConf
 	h := newHarness(t)
 	h.makeEmptyRoot()
 
-	ensure.Nil(t, (&newCmd{}).cloneSampleCloudCode(h.env, &app{Name: "test"}, false, true))
+	ensure.Nil(t, (&newCmd{}).cloneSampleCloudCode(h.env, true))
 	ensure.Nil(t, os.MkdirAll(filepath.Join(h.env.Root, configDir), 0755))
 	ensure.Nil(t, ioutil.WriteFile(filepath.Join(h.env.Root, legacyConfigFile),
 		[]byte("{}"),

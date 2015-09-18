@@ -125,7 +125,7 @@ func TestProjectType(t *testing.T) {
 	defer h.Stop()
 
 	h.makeEmptyRoot()
-	ensure.Nil(t, (&newCmd{}).cloneSampleCloudCode(h.env, &app{Name: "test"}, false, false))
+	ensure.Nil(t, (&newCmd{}).cloneSampleCloudCode(h.env, false))
 
 	c := &configureCmd{}
 	err := c.projectType(h.env, []string{"1", "2"})

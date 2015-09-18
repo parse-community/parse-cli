@@ -24,7 +24,7 @@ func TestNewCmdDirs(t *testing.T) {
 	h, n := newNewCmdHarness(t)
 	defer h.Stop()
 
-	ensure.Nil(t, n.cloneSampleCloudCode(h.env, &app{Name: "test"}, false, true))
+	ensure.Nil(t, n.cloneSampleCloudCode(h.env, true))
 
 	var err error
 
@@ -40,7 +40,7 @@ func TestNewCmdContent(t *testing.T) {
 	h, n := newNewCmdHarness(t)
 	defer h.Stop()
 
-	ensure.Nil(t, n.cloneSampleCloudCode(h.env, &app{Name: "test"}, false, true))
+	ensure.Nil(t, n.cloneSampleCloudCode(h.env, true))
 
 	for _, newProjectFile := range newProjectFiles {
 		content, err := ioutil.ReadFile(

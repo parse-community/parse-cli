@@ -44,7 +44,7 @@ func newJsSdkHarnessWithConfig(t testing.TB) (*Harness, *context) {
 	h := newJsSdkHarness(t)
 	h.makeEmptyRoot()
 
-	ensure.Nil(t, (&newCmd{}).cloneSampleCloudCode(h.env, &app{Name: "test"}, false, true))
+	ensure.Nil(t, (&newCmd{}).cloneSampleCloudCode(h.env, true))
 	h.Out.Reset()
 
 	c, err := configFromDir(h.env.Root)

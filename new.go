@@ -237,7 +237,7 @@ This will download Cloud Code to a temporary location.
 			}
 		}
 		dumpTemplate = (isNew || dumpTemplate) && !n.noCode
-		return dumpTemplate, n.cloneSampleCloudCode(e, app, isNew, dumpTemplate)
+		return dumpTemplate, n.cloneSampleCloudCode(e, dumpTemplate)
 	}
 	return false, stackerr.Newf("Unknown project type: %d", e.Type)
 }

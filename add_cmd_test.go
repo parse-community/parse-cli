@@ -58,7 +58,7 @@ func newAddCmdHarnessWithConfig(t testing.TB) (*Harness, *addCmd, error) {
 	h, _ := newAddCmdHarness(t)
 	h.makeEmptyRoot()
 
-	ensure.Nil(t, (&newCmd{}).cloneSampleCloudCode(h.env, &app{Name: "B"}, false, true))
+	ensure.Nil(t, (&newCmd{}).cloneSampleCloudCode(h.env, true))
 
 	return h, &a, nil
 }
@@ -115,7 +115,7 @@ func newLegacyAddCmdHarnessWithConfig(t testing.TB) (*Harness, *addCmd, error) {
 	h, _ := newAddCmdHarness(t)
 	h.makeEmptyRoot()
 
-	ensure.Nil(t, (&newCmd{}).cloneSampleCloudCode(h.env, &app{Name: "B"}, false, true))
+	ensure.Nil(t, (&newCmd{}).cloneSampleCloudCode(h.env, true))
 	ensure.Nil(t, os.MkdirAll(filepath.Join(h.env.Root, configDir), 0755))
 	ensure.Nil(t,
 		ioutil.WriteFile(

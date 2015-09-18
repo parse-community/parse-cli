@@ -8,7 +8,7 @@ import (
 	"github.com/facebookgo/stackerr"
 )
 
-func (n *newCmd) cloneSampleCloudCode(e *env, app *app, isNew bool, dumpTemplate bool) error {
+func (n *newCmd) cloneSampleCloudCode(e *env, dumpTemplate bool) error {
 	err := os.MkdirAll(e.Root, 0755)
 	if err != nil {
 		return stackerr.Wrap(err)
