@@ -28,14 +28,18 @@ func (l *listCmd) printListOfApps(e *env) error {
 	return nil
 }
 
-func (l *listCmd) run(e *env) error {
+func (l *listCmd) run(e *env, args []string) error {
 	l.printListOfApps(e)
 
 	var apps apps
 	if err := apps.login.authUser(e); err != nil {
 		return err
 	}
-	return apps.showApps(e)
+	var appName string
+	if len(args) > 0 {
+		appName = args[0]
+	}
+	return apps.showApps(e, appName)
 }
 
 func newListCmd(e *env) *cobra.Command {
@@ -46,6 +50,6 @@ func newListCmd(e *env) *cobra.Command {
 		Long: `Lists Parse apps and aliases added to the current Cloud Code directory
 when executed inside the directory.
 Additionally, it prints the list of Parse apps associated with current Parse account.`,
-		Run: runNoArgs(e, l.run),
+		Run: runWithArgs(e, l.run),
 	}
 }

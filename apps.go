@@ -57,8 +57,9 @@ func selectionString(appNames []string) string {
 }
 
 func (a *apps) printApp(e *env, params *app) error {
-	w := new(tabwriter.Writer)
+	fmt.Fprintf(e.Out, "Properties of the app %q:\n", params.Name)
 
+	w := new(tabwriter.Writer)
 	w.Init(e.Out, 0, 8, 0, '\t', 0)
 	fmt.Fprintf(w, "Name\t%s\n", params.Name)
 	fmt.Fprintf(w, "DashboardURL\t%s\n", params.DashboardURL)
@@ -173,21 +174,25 @@ func (a *apps) selectApp(apps []*app, msg string, e *env) (*app, error) {
 	return nil, stackerr.Newf("Please try again. Please select from among the listed apps.")
 }
 
-func (a *apps) showApps(e *env) error {
+func (a *apps) showApps(e *env, appName string) error {
 	apps, err := a.restFetchApps(e)
 	if err != nil {
 		return err
 	}
-	fmt.Fprintln(e.Out, "The following apps are currently owned by you:")
-	app, err := a.selectApp(apps,
-		"Select an app to view its properties: ",
-		e,
-	)
-	if err != nil {
-		return err
+	if appName != "" {
+		for _, app := range apps {
+			if app.Name == appName {
+				return a.printApp(e, app)
+			}
+		}
 	}
-	fmt.Fprintf(e.Out, "Properties of app: %q\n", app.Name)
-	return a.printApp(e, app)
+
+	fmt.Fprintf(
+		e.Out,
+		"These are the apps you currently have access to:\n%s",
+		selectionString(allApps(apps)),
+	)
+	return nil
 }
 
 func (a *apps) getAppName(e *env) (string, error) {

@@ -242,7 +242,8 @@ func TestCreateNewApp(t *testing.T) {
 		`Please choose a name for your Parse app.
 Note that this name will appear on the Parse website,
 but it does not have to be the same as your mobile app's public name.
-Name: Name				D
+Name: Properties of the app "D":
+Name				D
 DashboardURL			https://api.example.com/dashboard/D
 ApplicationID			applicationID.D
 ClientKey			clientKey.D
