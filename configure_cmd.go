@@ -36,21 +36,9 @@ func (c *configureCmd) accountKey(e *env) error {
 		l.tokenReader = c.tokenReader
 	}
 	foundEmail, creds, err := l.getTokenCredentials(e, email)
+	firstEverConfigure := false
 	if stackerr.HasUnderlying(err, stackerr.MatcherFunc(os.IsNotExist)) && !c.isDefault {
-		fmt.Fprintln(
-			e.Out,
-			`
-
-Looks like you have not configured the default account key yet.
-Note that "parse new" and "parse list" can automatically pick up a default key if present.
-Otherwise, you'll have to explicitly set the PARSER_EMAIL environment variable
-for it to know which account key to use.
-Further, if the command line tool cannot find an account key for a configured email it will try to
-use the default account key
-
-To configure the default account key use:
-       "parse configure accountkey -d"`,
-		)
+		firstEverConfigure = true
 	}
 
 	if creds != nil {
@@ -80,7 +68,37 @@ for email: %q
 			fmt.Fprintf(e.Out, "Successfully stored account key for: %q.\n", email)
 		}
 	}
-	return stackerr.Wrap(err)
+	if err != nil {
+		fmt.Fprintln(e.Err, "Could not save account key.")
+		return stackerr.Wrap(err)
+	}
+
+	if firstEverConfigure {
+		fmt.Fprintln(
+			e.Out,
+			`
+Looks like this is the first time you have configured an account key.
+Note that "parse new" and "parse list" can automatically pick up a default key if present.
+Otherwise, you'll have to explicitly set the PARSER_EMAIL environment variable
+for them to pick the correct account key.
+Further, if the command line tool cannot find an account key for a configured email it will try to
+use the default account key.
+Hence, we are automatically configuring the default account key to be the same as current account key.
+`,
+		)
+		err = c.login.storeCredentials(e, "", &credentials{token: token})
+		if err != nil {
+			fmt.Fprintln(e.Err, "Could not save account key.")
+			return stackerr.Wrap(err)
+		}
+		fmt.Fprintln(e.Out, `Successfully configured the default account key.
+To change the default account key in future use:
+
+       "parse configure accountkey -d"
+`)
+	}
+
+	return nil
 }
 
 func (c *configureCmd) parserEmail(e *env, args []string) error {
