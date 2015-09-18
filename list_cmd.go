@@ -45,11 +45,12 @@ func (l *listCmd) run(e *env, args []string) error {
 func newListCmd(e *env) *cobra.Command {
 	l := listCmd{}
 	return &cobra.Command{
-		Use:   "list",
-		Short: "Lists Parse apps associated with current Parse account",
+		Use:   "list [app]",
+		Short: "Lists properties of given Parse app and Parse apps associated with given project",
 		Long: `Lists Parse apps and aliases added to the current Cloud Code directory
 when executed inside the directory.
-Additionally, it prints the list of Parse apps associated with current Parse account.`,
+Additionally, it prints the list of Parse apps associated with current Parse account.
+If an optional app name is provided, it prints all the keys for that app.`,
 		Run: runWithArgs(e, l.run),
 	}
 }

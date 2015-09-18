@@ -209,7 +209,7 @@ func newConfigureCmd(e *env) *cobra.Command {
 	cmd.AddCommand(keyCmd)
 
 	emailCmd := &cobra.Command{
-		Use:     "email",
+		Use:     "email [id]",
 		Short:   "Configures the parser email for this project",
 		Long:    "Configures the parser email for current project.",
 		Run:     runWithArgs(e, c.parserEmail),
@@ -218,7 +218,7 @@ func newConfigureCmd(e *env) *cobra.Command {
 	cmd.AddCommand(emailCmd)
 
 	projectCmd := &cobra.Command{
-		Use:   "project",
+		Use:   "project [type]",
 		Short: "Set the project type to one among listed options",
 		Long:  "Set the project type to one among listed options. For instance, 'parse'",
 		Run:   runWithArgs(e, c.projectType),

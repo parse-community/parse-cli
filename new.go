@@ -328,9 +328,11 @@ func newNewCmd(e *env) *cobra.Command {
 	nc := newCmd{addApplication: true}
 	cmd := &cobra.Command{
 		Use:   "new",
-		Short: "Creates a new Parse app and adds Cloud Code to an existing Parse app",
-		Long:  `Creates a new Parse app and adds Cloud Code to an existing Parse app.`,
-		Run:   runNoArgs(e, nc.run),
+		Short: "Adds Cloud Code to an existing Parse app, additional can create a new Parse app",
+		Long: `Adds Cloud Code to an existing Parse app, additional can create a new Parse app.
+You can also use it in non-interactive mode by using the various flags available.
+`,
+		Run: runNoArgs(e, nc.run),
 	}
 	cmd.Flags().BoolVarP(&nc.noCode, "config", "c", nc.noCode,
 		"Create a Cloud Code project only with configuration.")
