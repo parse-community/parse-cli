@@ -55,7 +55,15 @@ func (a *addCmd) run(e *env, args []string) error {
 	if err := a.apps.login.authUser(e); err != nil {
 		return err
 	}
-	app, err := a.selectApp(e, "") // TODO (can also make this configurable)
+	var appName string
+	if len(args) > 1 {
+		return stackerr.New("Only an optional Parse app name is expected.")
+	}
+	if len(args) == 1 {
+		appName = args[0]
+	}
+
+	app, err := a.selectApp(e, appName)
 	if err != nil {
 		return err
 	}
