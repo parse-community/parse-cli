@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/facebookgo/stackerr"
 	"github.com/spf13/cobra"
 )
 
@@ -25,11 +26,16 @@ func (f functionHook) String() string {
 }
 
 type functionHooksCmd struct {
-	All      bool
-	Function *functionHook
+	All         bool
+	Function    *functionHook
+	interactive bool
 }
 
-func readFunctionName(e *env) (*functionHook, error) {
+func readFunctionName(e *env, params *functionHook) (*functionHook, error) {
+	if params != nil && params.FunctionName != "" {
+		return params, nil
+	}
+
 	var f functionHook
 	fmt.Fprintf(e.Out, "Please enter the function name: ")
 	fmt.Fscanf(e.In, "%s\n", &f.FunctionName)
@@ -39,8 +45,12 @@ func readFunctionName(e *env) (*functionHook, error) {
 	return &f, nil
 }
 
-func readFunctionParams(e *env) (*functionHook, error) {
-	f, err := readFunctionName(e)
+func readFunctionParams(e *env, params *functionHook) (*functionHook, error) {
+	if params != nil && params.FunctionName != "" && params.URL != "" {
+		return params, nil
+	}
+
+	f, err := readFunctionName(e, params)
 	if err != nil {
 		return nil, err
 	}
@@ -58,18 +68,19 @@ func readFunctionParams(e *env) (*functionHook, error) {
 const defaultFunctionsURL = "/1/hooks/functions"
 
 func (h *functionHooksCmd) functionHooksCreate(e *env, ctx *context) error {
-	params, err := readFunctionParams(e)
+	params, err := readFunctionParams(e, h.Function)
 	if err != nil {
 		return err
 	}
+
 	var res functionHook
 	functionsURL, err := url.Parse(defaultFunctionsURL)
 	if err != nil {
-		return err
+		return stackerr.Wrap(err)
 	}
 	_, err = e.ParseAPIClient.Post(functionsURL, params, &res)
 	if err != nil {
-		return err
+		return stackerr.Wrap(err)
 	}
 	if res.Warning != "" {
 		fmt.Fprintf(e.Err, "WARNING: %s\n", res.Warning)
@@ -87,7 +98,7 @@ func (h *functionHooksCmd) functionHooksRead(e *env, ctx *context) error {
 	u := defaultFunctionsURL
 	var function *functionHook
 	if !h.All {
-		funct, err := readFunctionName(e)
+		funct, err := readFunctionName(e, h.Function)
 		if err != nil {
 			return err
 		}
@@ -96,7 +107,7 @@ func (h *functionHooksCmd) functionHooksRead(e *env, ctx *context) error {
 	}
 	functionsURL, err := url.Parse(u)
 	if err != nil {
-		return err
+		return stackerr.Wrap(err)
 	}
 
 	var res struct {
@@ -104,7 +115,7 @@ func (h *functionHooksCmd) functionHooksRead(e *env, ctx *context) error {
 	}
 	_, err = e.ParseAPIClient.Get(functionsURL, &res)
 	if err != nil {
-		return err
+		return stackerr.Wrap(err)
 	}
 	var output []string
 	for _, function := range res.Results {
@@ -126,19 +137,19 @@ func (h *functionHooksCmd) functionHooksRead(e *env, ctx *context) error {
 }
 
 func (h *functionHooksCmd) functionHooksUpdate(e *env, ctx *context) error {
-	params, err := readFunctionParams(e)
+	params, err := readFunctionParams(e, h.Function)
 	if err != nil {
 		return err
 	}
 	var res functionHook
 	functionsURL, err := url.Parse(path.Join(defaultFunctionsURL, params.FunctionName))
 	if err != nil {
-		return err
+		return stackerr.Wrap(err)
 	}
 
 	_, err = e.ParseAPIClient.Put(functionsURL, &functionHook{URL: params.URL}, &res)
 	if err != nil {
-		return err
+		return stackerr.Wrap(err)
 	}
 	if res.Warning != "" {
 		fmt.Fprintf(e.Err, "WARNING: %s\n", res.Warning)
@@ -153,13 +164,13 @@ func (h *functionHooksCmd) functionHooksUpdate(e *env, ctx *context) error {
 }
 
 func (h *functionHooksCmd) functionHooksDelete(e *env, ctx *context) error {
-	params, err := readFunctionName(e)
+	params, err := readFunctionName(e, h.Function)
 	if err != nil {
 		return err
 	}
 	functionsURL, err := url.Parse(path.Join(defaultFunctionsURL, params.FunctionName))
 	if err != nil {
-		return err
+		return stackerr.Wrap(err)
 	}
 
 	confirmMessage := fmt.Sprintf(
@@ -168,10 +179,10 @@ func (h *functionHooksCmd) functionHooksDelete(e *env, ctx *context) error {
 	)
 
 	var res functionHook
-	if getConfirmation(confirmMessage, e) {
+	if !h.interactive || getConfirmation(confirmMessage, e) {
 		_, err = e.ParseAPIClient.Put(functionsURL, map[string]interface{}{"__op": "Delete"}, &res)
 		if err != nil {
-			return err
+			return stackerr.Wrap(err)
 		}
 		fmt.Fprintf(e.Out, "Successfully deleted webhook function %q\n", params.FunctionName)
 		if res.FunctionName != "" {
@@ -189,7 +200,7 @@ func (h *functionHooksCmd) functionHooks(e *env, c *context) error {
 }
 
 func newFunctionHooksCmd(e *env) *cobra.Command {
-	var h functionHooksCmd
+	h := &functionHooksCmd{interactive: true}
 
 	c := &cobra.Command{
 		Use:   "functions",

@@ -38,8 +38,7 @@ func newTriggersHarness(t testing.TB) *Harness {
 						{"className": "foo", "triggerName": "beforeSave", "url": "https://api.example.com/foo/beforeSave"},
 					},
 				}
-			} else {
-				ensure.DeepEqual(t, r.URL.Path, defaultTriggersURL)
+			} else if r.URL.Path == defaultTriggersURL {
 				body = map[string]interface{}{
 					"results": []map[string]interface{}{
 						{"className": "foo", "triggerName": "beforeSave"},
@@ -47,6 +46,9 @@ func newTriggersHarness(t testing.TB) *Harness {
 						{"className": "bar", "triggerName": "afterSave", "url": "https://api.example.com/bar/afterSave"},
 					},
 				}
+			} else {
+				return &http.Response{StatusCode: http.StatusBadRequest},
+					errors.New("no such trigger is defined")
 			}
 		case "POST":
 			ensure.DeepEqual(t, r.URL.Path, defaultTriggersURL)
@@ -122,20 +124,20 @@ func TestReadTriggerParams(t *testing.T) {
 	defer h.Stop()
 
 	h.env.In = ioutil.NopCloser(strings.NewReader("\n"))
-	_, err := readTriggerName(h.env)
+	_, err := readTriggerName(h.env, nil)
 	ensure.Err(t, err, regexp.MustCompile("Class name cannot be empty"))
 
 	h.env.In = ioutil.NopCloser(strings.NewReader("foo\n"))
-	_, err = readTriggerName(h.env)
+	_, err = readTriggerName(h.env, nil)
 	ensure.Err(t, err, regexp.MustCompile("Trigger name cannot be empty"))
 
 	h.env.In = ioutil.NopCloser(strings.NewReader("foo\nbeforeSave"))
-	hook, err := readTriggerName(h.env)
+	hook, err := readTriggerName(h.env, nil)
 	ensure.Nil(t, err)
 	ensure.DeepEqual(t, *hook, triggerHook{ClassName: "foo", TriggerName: "beforeSave"})
 
 	h.env.In = ioutil.NopCloser(strings.NewReader("foo\nbeforeSave\napi.example.com/foo/beforeSave\n"))
-	hook, err = readTriggerParams(h.env)
+	hook, err = readTriggerParams(h.env, nil)
 	ensure.Nil(t, err)
 	ensure.DeepEqual(t, *hook, triggerHook{
 		ClassName:   "foo",
@@ -234,7 +236,7 @@ func TestTriggerHookDelete(t *testing.T) {
 
 	h := newTriggersHarness(t)
 
-	var tr triggerHooksCmd
+	tr := triggerHooksCmd{interactive: true}
 	h.env.In = ioutil.NopCloser(strings.NewReader("foo\nbeforeSave\ny\n"))
 	ensure.Nil(t, tr.triggerHooksDelete(h.env, nil))
 	ensure.DeepEqual(t,

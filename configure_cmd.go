@@ -1,20 +1,49 @@
 package main
 
 import (
+	"bufio"
+	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
+	"net/url"
 	"os"
+	"path"
 	"sort"
 	"strconv"
+	"strings"
 
 	"github.com/facebookgo/stackerr"
 	"github.com/spf13/cobra"
+)
+
+var (
+	errInvalidFormat = errors.New(
+		`invalid format. valid formats should look like:
+[put|post],functionName,https_url
+delete,functionName
+[put|post],className,triggerName,https_url
+delete,className,triggerName
+`)
+
+	errPostToPut = errors.New(
+		`a hook with given name already exists: cannot create a new one.
+`)
+
+	errPutToPost = errors.New(
+		`a hook with the given name does not exist yet: cannot update the url.
+`)
+
+	errNotExist = errors.New(
+		`a hook with the given name does not exist. cannot delete it.
+	`)
 )
 
 type configureCmd struct {
 	login       login
 	isDefault   bool
 	tokenReader io.Reader // for testing
+	hooksStrict bool
 }
 
 func (c *configureCmd) accountKey(e *env) error {
@@ -185,6 +214,328 @@ Enter a number between 1 and %d: `,
 	return nil
 }
 
+type hookOperation struct {
+	method   string
+	function *functionHook
+	trigger  *triggerHook
+}
+
+func (c *configureCmd) checkTriggerName(s string) error {
+	switch strings.ToLower(s) {
+	case "beforesave", "beforedelete", "aftersave", "afterdelete":
+		return nil
+	}
+	return stackerr.Newf(
+		`invalid trigger name: %v.
+	This is the list of valid trigger names:
+		beforeSave
+		afterSave
+		beforeDelete
+		afterDelete
+`,
+		s,
+	)
+}
+
+func (c *configureCmd) postOrPutHook(
+	e *env,
+	hooksOps []*hookOperation,
+	fields ...string,
+) (bool, []*hookOperation, error) {
+	restOp := strings.ToUpper(fields[0])
+	if restOp != "POST" && restOp != "PUT" {
+		return false, nil, stackerr.Wrap(errInvalidFormat)
+	}
+
+	switch len(fields) {
+	case 3:
+		hooksOps = append(hooksOps, &hookOperation{
+			method:   restOp,
+			function: &functionHook{FunctionName: fields[1], URL: fields[2]},
+		})
+		return true, hooksOps, nil
+
+	case 4:
+		if err := c.checkTriggerName(fields[2]); err != nil {
+			return false, nil, err
+		}
+		hooksOps = append(hooksOps, &hookOperation{
+			method:  restOp,
+			trigger: &triggerHook{ClassName: fields[1], TriggerName: fields[2], URL: fields[3]},
+		})
+		return true, hooksOps, nil
+	}
+	return false, nil, stackerr.Wrap(errInvalidFormat)
+
+}
+
+func (c *configureCmd) deleteHook(
+	e *env,
+	hooksOps []*hookOperation,
+	fields ...string,
+) (bool, []*hookOperation, error) {
+	restOp := strings.ToUpper(fields[0])
+	if restOp != "DELETE" {
+		return false, nil, stackerr.Wrap(errInvalidFormat)
+	}
+
+	switch len(fields) {
+	case 2:
+		hooksOps = append(hooksOps, &hookOperation{
+			method:   "DELETE",
+			function: &functionHook{FunctionName: fields[1]},
+		})
+		return true, hooksOps, nil
+	case 3:
+		if err := c.checkTriggerName(fields[2]); err != nil {
+			return false, nil, err
+		}
+		hooksOps = append(hooksOps, &hookOperation{
+			method:  "DELETE",
+			trigger: &triggerHook{ClassName: fields[1], TriggerName: fields[2]},
+		})
+		return true, hooksOps, nil
+	}
+
+	return false, nil, stackerr.Wrap(errInvalidFormat)
+}
+
+func (c *configureCmd) appendHookOperation(
+	e *env,
+	op string,
+	hooks []*hookOperation,
+) (bool, []*hookOperation, error) {
+	op = strings.TrimSpace(op)
+	if op == "" {
+		return false, hooks, nil
+	}
+
+	fields := strings.SplitN(op, ",", 4)
+	restOp := strings.ToLower(fields[0])
+
+	switch restOp {
+	case "post", "put":
+		if len(fields) > 2 && strings.HasPrefix(fields[2], "https://") {
+			fields[2] = strings.Join(fields[2:], ",")
+			fields = fields[:3]
+		}
+		return c.postOrPutHook(e, hooks, fields...)
+
+	case "delete":
+		return c.deleteHook(e, hooks, fields...)
+	}
+	return false, nil, stackerr.Wrap(errInvalidFormat)
+}
+
+func (c *configureCmd) createHooksOperations(
+	e *env,
+	reader io.Reader,
+) ([]*hookOperation, error) {
+	scanner := bufio.NewScanner(reader)
+	var (
+		hooksOps []*hookOperation
+		added    bool
+		err      error
+	)
+	lineNum := 0
+	for scanner.Scan() {
+		lineNum++
+		line := scanner.Text()
+		added, hooksOps, err = c.appendHookOperation(e, line, hooksOps)
+		if err != nil {
+			return nil, err
+		}
+		if !added {
+			fmt.Fprintf(e.Out, "Ignoring line: %d\n", lineNum)
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		return nil, stackerr.Wrap(err)
+	}
+	return hooksOps, nil
+}
+
+func (c *configureCmd) checkStrictMode(restOp string, exists bool) (string, bool, error) {
+	restOp = strings.ToUpper(restOp)
+	if !exists {
+		if restOp == "PUT" {
+			if c.hooksStrict {
+				return "", false, stackerr.Wrap(errPutToPost)
+			}
+			return "POST", true, nil
+		}
+		if restOp == "DELETE" {
+			if c.hooksStrict {
+				return "", false, stackerr.Wrap(errNotExist)
+			}
+			return "DELETE", true, nil
+		}
+	} else if restOp == "POST" {
+		if c.hooksStrict {
+			return "", false, stackerr.Wrap(errPostToPut)
+		}
+		return "PUT", true, nil
+	}
+	return restOp, false, nil
+}
+
+func (c *configureCmd) functionHookExists(e *env, name string) (bool, error) {
+	functionsURL, err := url.Parse(path.Join(defaultFunctionsURL, name))
+	if err != nil {
+		return false, stackerr.Wrap(err)
+	}
+	var results struct {
+		Results []*functionHook `json:"results,omitempty"`
+	}
+	_, err = e.ParseAPIClient.Get(functionsURL, &results)
+	if err != nil {
+		if strings.Contains(err.Error(), "is defined") {
+			return false, nil
+		}
+		return false, stackerr.Wrap(err)
+	}
+	for _, result := range results.Results {
+		if result.URL != "" && result.FunctionName == name {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func (c *configureCmd) deployFunctionHook(e *env, op *hookOperation) error {
+	if op.function == nil {
+		return stackerr.New("cannot deploy nil function hook")
+	}
+	exists, err := c.functionHookExists(e, op.function.FunctionName)
+	if err != nil {
+		return err
+	}
+
+	restOp, suppressed, err := c.checkStrictMode(op.method, exists)
+	if err != nil {
+		return err
+	}
+
+	function := &functionHooksCmd{Function: op.function}
+	switch restOp {
+	case "POST":
+		return function.functionHooksCreate(e, nil)
+	case "PUT":
+		return function.functionHooksUpdate(e, nil)
+	case "DELETE":
+		if suppressed {
+			return nil
+		}
+		return function.functionHooksDelete(e, nil)
+	}
+	return stackerr.Wrap(errInvalidFormat)
+}
+
+func (c *configureCmd) triggerHookExists(e *env, className, triggerName string) (bool, error) {
+	triggersURL, err := url.Parse(path.Join(defaultTriggersURL, className, triggerName))
+	if err != nil {
+		return false, stackerr.Wrap(err)
+	}
+	var results struct {
+		Results []*triggerHook `json:"results,omitempty"`
+	}
+	_, err = e.ParseAPIClient.Get(triggersURL, &results)
+	if err != nil {
+		if strings.Contains(err.Error(), "is defined") {
+			return false, nil
+		}
+		return false, stackerr.Wrap(err)
+	}
+	for _, result := range results.Results {
+		if result.URL != "" && result.ClassName == className && result.TriggerName == triggerName {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func (c *configureCmd) deployTriggerHook(e *env, op *hookOperation) error {
+	if op.trigger == nil {
+		return stackerr.New("cannot deploy nil trigger hook")
+	}
+
+	exists, err := c.triggerHookExists(e, op.trigger.ClassName, op.trigger.TriggerName)
+	if err != nil {
+		return err
+	}
+	restOp, suppressed, err := c.checkStrictMode(op.method, exists)
+	if err != nil {
+		return err
+	}
+
+	trigger := &triggerHooksCmd{Trigger: op.trigger, All: false}
+	switch restOp {
+	case "POST":
+		return trigger.triggerHooksCreate(e, nil)
+	case "PUT":
+		return trigger.triggerHooksUpdate(e, nil)
+	case "DELETE":
+		if suppressed {
+			return nil
+		}
+		return trigger.triggerHooksDelete(e, nil)
+	}
+	return stackerr.Wrap(errInvalidFormat)
+
+}
+
+func (c *configureCmd) deployWebhooksConfig(e *env, hooksOps []*hookOperation) error {
+	for _, op := range hooksOps {
+		if op.function == nil && op.trigger == nil {
+			return stackerr.New("hook operation is neither a function, not a trigger.")
+		}
+		if op.function != nil && op.trigger != nil {
+			return stackerr.New("a hook cannot be both a function and a trigger.")
+		}
+		if op.function != nil {
+			if err := c.deployFunctionHook(e, op); err != nil {
+				return err
+			}
+		} else {
+			if err := c.deployTriggerHook(e, op); err != nil {
+				return err
+			}
+		}
+		fmt.Fprintln(e.Out)
+	}
+	return nil
+}
+
+func (c *configureCmd) hooksCmd(e *env, ctx *context, args []string) error {
+	if len(args) > 1 {
+		return fmt.Errorf("Invalid args: %v, only an optional hooks config file is expected.", args)
+	}
+	reader := e.In
+	if len(args) == 1 {
+		file, err := os.Open(args[0])
+		if err != nil {
+			return stackerr.Wrap(err)
+		}
+		reader = ioutil.NopCloser(file)
+	} else {
+		fmt.Fprintln(e.Out, "Since a webhooks config file was not provided reading from stdin.")
+	}
+	hooksOps, err := c.createHooksOperations(e, reader)
+	if err != nil {
+		return err
+	}
+	err = c.deployWebhooksConfig(e, hooksOps)
+	if err != nil {
+		fmt.Fprintln(
+			e.Out,
+			"Failed to deploy the webhooks config. Please try again...",
+		)
+		return err
+	}
+	fmt.Fprintln(e.Out, "Successfully configured the given webhooks for the app.")
+	return nil
+}
+
 func newConfigureCmd(e *env) *cobra.Command {
 	var c configureCmd
 
@@ -224,6 +575,17 @@ func newConfigureCmd(e *env) *cobra.Command {
 		Run:   runWithArgs(e, c.projectType),
 	}
 	cmd.AddCommand(projectCmd)
+
+	hooksCmd := &cobra.Command{
+		Use:     "hooks [filename]",
+		Short:   "Configure webhooks according to given config file",
+		Long:    "Configure webhooks for the app based on the given configuration csv file.",
+		Run:     runWithArgsClient(e, c.hooksCmd),
+		Aliases: []string{"webhooks"},
+	}
+	hooksCmd.Flags().BoolVarP(&c.hooksStrict, "strict", "s", c.hooksStrict,
+		"Configure hooks in strict mode, i.e., do not automatically fix errors.")
+	cmd.AddCommand(hooksCmd)
 
 	return cmd
 }
