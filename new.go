@@ -177,7 +177,13 @@ Type "(n)ew" or "(e)xisting": `,
 	return "", stackerr.New(msg)
 }
 
-func (n *newCmd) setupSample(e *env, app *app, isNew bool, nonInteractive bool) (bool, error) {
+func (n *newCmd) setupSample(
+	e *env,
+	name string,
+	appConfig appConfig,
+	isNew bool,
+	nonInteractive bool,
+) (bool, error) {
 	found := isProjectDir(getProjectRoot(e, e.Root))
 	if !found {
 		root := getLegacyProjectRoot(e, e.Root)
@@ -200,7 +206,7 @@ Please refrain from creating a Parse project inside another Parse project.
 	if nonInteractive {
 		cloudCodeDir = n.codeLocation
 	} else {
-		cloudCodeDir, err = n.getCloudCodeDir(e, app.Name, isNew)
+		cloudCodeDir, err = n.getCloudCodeDir(e, name, isNew)
 		if err != nil {
 			return false, err
 		}
@@ -212,10 +218,14 @@ Please refrain from creating a Parse project inside another Parse project.
 		dumpTemplate := false
 		if !isNew && !n.noCode {
 			// if parse app was already created try to fetch cloud code and populate dir
+			masterKey, err := appConfig.getMasterKey(e)
+			if err != nil {
+				return false, err
+			}
 			e.ParseAPIClient = e.ParseAPIClient.WithCredentials(
 				parse.MasterKey{
-					ApplicationID: app.ApplicationID,
-					MasterKey:     app.MasterKey,
+					ApplicationID: appConfig.getApplicationID(),
+					MasterKey:     masterKey,
 				},
 			)
 
@@ -306,7 +316,7 @@ func (n *newCmd) run(e *env) error {
 	e.Type = parseFormat
 	appConfig := addCmd.getParseAppConfig(app)
 
-	dumpTemplate, err := n.setupSample(e, app, isNew, nonInteractive)
+	dumpTemplate, err := n.setupSample(e, app.Name, appConfig, isNew, nonInteractive)
 	if err != nil {
 		return err
 	}
