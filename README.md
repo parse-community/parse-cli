@@ -31,16 +31,18 @@ The following commands are currently available in the `Parse Command Line Tool`:
   default     Sets or gets the default Parse app
   deploy      Deploys a Parse app
   develop     Monitors for changes to code and deploys, also tails parse logs
+  download    Downloads the Cloud Code project
   functions   List Cloud Code functions and function webhooks
   generate    Generates a sample express app in the current project directory
   jssdk       Sets the Parse JavaScript SDK version to use in Cloud Code
-  list        Lists Parse apps associated with current Parse account
+  list        Lists properties of the given Parse app and Parse apps associated with given project
   logs        Prints out recent log messages
-  new         Creates a new Parse app and adds Cloud Code to an existing Parse app
+  migrate     Migrate project config format to the preferred format
+  new         Adds Cloud Code to an existing Parse app, can also create a new Parse app
   releases    Gets the releases for a Parse app
   rollback    Rolls back the version for the given app
   symbols     Uploads symbol files
-  triggers    Lists Cloud Code triggers and trigger webhooks
+  triggers    List Cloud Code triggers and trigger webhooks
   update      Updates this tool to the latest version
   version     Gets the Command Line Tools version
   help        Help about any command
