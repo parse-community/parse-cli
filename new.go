@@ -244,18 +244,23 @@ This will download Cloud Code to a temporary location.
 
 func (n *newCmd) configureSample(
 	add *addCmd,
-	app *app,
+	name string,
+	appConfig appConfig,
 	args []string,
 	e *env,
 ) error {
-	if err := add.addSelectedApp(app, args, e); err != nil {
+	if err := add.addSelectedApp(name, appConfig, args, e); err != nil {
 		return err
 	}
 
+	masterKey, err := appConfig.getMasterKey(e)
+	if err != nil {
+		return err
+	}
 	e.ParseAPIClient = e.ParseAPIClient.WithCredentials(
 		parse.MasterKey{
-			ApplicationID: app.ApplicationID,
-			MasterKey:     app.MasterKey,
+			ApplicationID: appConfig.getApplicationID(),
+			MasterKey:     masterKey,
 		},
 	)
 
@@ -299,12 +304,13 @@ func (n *newCmd) run(e *env) error {
 	}
 
 	e.Type = parseFormat
+	appConfig := addCmd.getParseAppConfig(app)
 
 	dumpTemplate, err := n.setupSample(e, app, isNew, nonInteractive)
 	if err != nil {
 		return err
 	}
-	if err := n.configureSample(addCmd, app, nil, e); err != nil {
+	if err := n.configureSample(addCmd, app.Name, appConfig, nil, e); err != nil {
 		return err
 	}
 	if token := apps.login.credentials.token; token != "" {

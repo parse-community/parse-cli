@@ -12,14 +12,18 @@ type addCmd struct {
 }
 
 func (a *addCmd) addSelectedApp(
-	app *app,
+	name string,
+	appConfig appConfig,
 	args []string,
 	e *env,
 ) error {
 	switch e.Type {
 	case legacyParseFormat, parseFormat:
-		appConfig := a.getParseAppConfig(app)
-		return a.addSelectedParseApp(app.Name, appConfig, args, e)
+		parseAppConfig, ok := appConfig.(*parseAppConfig)
+		if !ok {
+			return stackerr.New("invalid parse app config passed.")
+		}
+		return a.addSelectedParseApp(name, parseAppConfig, args, e)
 	}
 
 	return stackerr.Newf("Unknown project type: %d.", e.Type)
@@ -55,7 +59,8 @@ func (a *addCmd) run(e *env, args []string) error {
 	if err != nil {
 		return err
 	}
-	return a.addSelectedApp(app, args, e)
+	appConfig := a.getParseAppConfig(app)
+	return a.addSelectedApp(app.Name, appConfig, args, e)
 }
 
 func newAddCmd(e *env) *cobra.Command {
