@@ -334,9 +334,9 @@ You can also use it in non-interactive mode by using the various flags available
 `,
 		Run: runNoArgs(e, nc.run),
 	}
-	cmd.Flags().BoolVarP(&nc.noCode, "config", "c", nc.noCode,
-		"Create a Cloud Code project only with configuration.")
-	cmd.Flags().BoolVarP(&nc.createNewApp, "new", "n", nc.createNewApp,
+	cmd.Flags().BoolVarP(&nc.noCode, "init", "i", nc.noCode,
+		"Create a Cloud Code project only with configuration, no code.")
+	cmd.Flags().BoolVarP(&nc.createNewApp, "create", "c", nc.createNewApp,
 		"Set this flag to true if you want to create a new Parse app.")
 	cmd.Flags().StringVarP(&nc.parseAppName, "app", "a", nc.parseAppName,
 		"Name of the Parse app you want to create or set up Cloud Code project for.")
