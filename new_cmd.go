@@ -35,7 +35,7 @@ func (n *newCmd) cloneSampleCloudCode(e *env, dumpTemplate bool) error {
 		return err
 	}
 
-	// no need to setup the template code
+	// no need to set up the template code
 	if !dumpTemplate {
 		return nil
 	}

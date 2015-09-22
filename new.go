@@ -14,7 +14,7 @@ import (
 type newCmd struct {
 	addApplication bool
 
-	noCode       bool   // do not setup/download code
+	noCode       bool   // do not set up/download code
 	createNewApp bool   // create a new app
 	parseAppName string // name of parse app
 	codeLocation string // location of cloud code project
@@ -59,7 +59,7 @@ func (n *newCmd) getCloudCodeDir(e *env, appName string, isNew bool) (string, er
 	var cloudCodeDir string
 	if isNew {
 		fmt.Fprintf(e.Out,
-			`Awesome! Now it's time to setup some Cloud Code for the app: %q,
+			`Awesome! Now it's time to set up some Cloud Code for the app: %q,
 Next we will create a directory to hold your Cloud Code.
 Please enter the name to use for this directory,
 or hit ENTER to use %q as the directory name.
@@ -357,6 +357,6 @@ You can also use it in non-interactive mode by using the various flags available
 	cmd.Flags().StringVarP(&nc.parseAppName, "app", "a", nc.parseAppName,
 		"Name of the Parse app you want to create or set up Cloud Code project for.")
 	cmd.Flags().StringVarP(&nc.codeLocation, "loc", "l", nc.codeLocation,
-		"Location at which the Cloud Code project will be setup.")
+		"Location at which the Cloud Code project will be set up.")
 	return cmd
 }
