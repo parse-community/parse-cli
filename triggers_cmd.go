@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/facebookgo/stackerr"
 	"github.com/spf13/cobra"
 )
 
@@ -26,11 +27,16 @@ func (t *triggerHook) String() string {
 }
 
 type triggerHooksCmd struct {
-	All     bool
-	Trigger *triggerHook
+	All         bool
+	Trigger     *triggerHook
+	interactive bool
 }
 
-func readTriggerName(e *env) (*triggerHook, error) {
+func readTriggerName(e *env, params *triggerHook) (*triggerHook, error) {
+	if params != nil && params.ClassName != "" && params.TriggerName != "" {
+		return params, nil
+	}
+
 	var t triggerHook
 	fmt.Fprintln(e.Out, "Please enter following details about the trigger webhook")
 	fmt.Fprint(e.Out, "Class name: ")
@@ -46,8 +52,12 @@ func readTriggerName(e *env) (*triggerHook, error) {
 	return &t, nil
 }
 
-func readTriggerParams(e *env) (*triggerHook, error) {
-	t, err := readTriggerName(e)
+func readTriggerParams(e *env, params *triggerHook) (*triggerHook, error) {
+	if params != nil && params.ClassName != "" && params.TriggerName != "" && params.URL != "" {
+		return params, nil
+	}
+
+	t, err := readTriggerName(e, params)
 	if err != nil {
 		return nil, err
 	}
@@ -63,18 +73,18 @@ func readTriggerParams(e *env) (*triggerHook, error) {
 const defaultTriggersURL = "/1/hooks/triggers"
 
 func (h *triggerHooksCmd) triggerHooksCreate(e *env, ctx *context) error {
-	params, err := readTriggerParams(e)
+	params, err := readTriggerParams(e, h.Trigger)
 	if err != nil {
 		return err
 	}
 	var res triggerHook
 	triggersURL, err := url.Parse(defaultTriggersURL)
 	if err != nil {
-		return err
+		return stackerr.Wrap(err)
 	}
 	_, err = e.ParseAPIClient.Post(triggersURL, params, &res)
 	if err != nil {
-		return err
+		return stackerr.Wrap(err)
 	}
 	if res.Warning != "" {
 		fmt.Fprintf(e.Err, "WARNING: %s\n", res.Warning)
@@ -92,7 +102,7 @@ func (h *triggerHooksCmd) triggerHooksRead(e *env, ctx *context) error {
 	u := defaultTriggersURL
 	var trigger *triggerHook
 	if !h.All {
-		trig, err := readTriggerName(e)
+		trig, err := readTriggerName(e, h.Trigger)
 		if err != nil {
 			return err
 		}
@@ -101,14 +111,14 @@ func (h *triggerHooksCmd) triggerHooksRead(e *env, ctx *context) error {
 	}
 	triggersURL, err := url.Parse(u)
 	if err != nil {
-		return err
+		return stackerr.Wrap(err)
 	}
 	var res struct {
 		Results []*triggerHook `json:"results,omitempty"`
 	}
 	_, err = e.ParseAPIClient.Get(triggersURL, &res)
 	if err != nil {
-		return err
+		return stackerr.Wrap(err)
 	}
 	var output []string
 	for _, trigger := range res.Results {
@@ -131,18 +141,18 @@ func (h *triggerHooksCmd) triggerHooksRead(e *env, ctx *context) error {
 }
 
 func (h *triggerHooksCmd) triggerHooksUpdate(e *env, ctx *context) error {
-	params, err := readTriggerParams(e)
+	params, err := readTriggerParams(e, h.Trigger)
 	if err != nil {
 		return err
 	}
 	var res triggerHook
 	triggersURL, err := url.Parse(path.Join(defaultTriggersURL, params.ClassName, params.TriggerName))
 	if err != nil {
-		return err
+		return stackerr.Wrap(err)
 	}
 	_, err = e.ParseAPIClient.Put(triggersURL, &triggerHook{URL: params.URL}, &res)
 	if err != nil {
-		return err
+		return stackerr.Wrap(err)
 	}
 	if res.Warning != "" {
 		fmt.Fprintf(e.Err, "WARNING: %s\n", res.Warning)
@@ -158,13 +168,13 @@ func (h *triggerHooksCmd) triggerHooksUpdate(e *env, ctx *context) error {
 }
 
 func (h *triggerHooksCmd) triggerHooksDelete(e *env, ctx *context) error {
-	params, err := readTriggerName(e)
+	params, err := readTriggerName(e, h.Trigger)
 	if err != nil {
 		return err
 	}
 	triggersURL, err := url.Parse(path.Join(defaultTriggersURL, params.ClassName, params.TriggerName))
 	if err != nil {
-		return err
+		return stackerr.Wrap(err)
 	}
 
 	confirmMessage := fmt.Sprintf("Are you sure you want to delete %q webhook trigger for class: %q (y/n): ",
@@ -173,10 +183,10 @@ func (h *triggerHooksCmd) triggerHooksDelete(e *env, ctx *context) error {
 	)
 
 	var res triggerHook
-	if getConfirmation(confirmMessage, e) {
+	if !h.interactive || getConfirmation(confirmMessage, e) {
 		_, err = e.ParseAPIClient.Put(triggersURL, map[string]interface{}{"__op": "Delete"}, &res)
 		if err != nil {
-			return err
+			return stackerr.Wrap(err)
 		}
 		fmt.Fprintf(e.Out, "Successfully deleted %q webhook trigger for class %q\n",
 			params.TriggerName,
@@ -199,7 +209,7 @@ func (h *triggerHooksCmd) triggerHooks(e *env, c *context) error {
 }
 
 func newTriggerHooksCmd(e *env) *cobra.Command {
-	var h triggerHooksCmd
+	h := &triggerHooksCmd{interactive: true}
 
 	c := &cobra.Command{
 		Use:   "triggers",

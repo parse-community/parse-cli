@@ -37,8 +37,7 @@ func newFunctionsHarness(t testing.TB) *Harness {
 						{"functionName": "foo", "url": "https://api.example.com/foo"},
 					},
 				}
-			} else {
-				ensure.DeepEqual(t, r.URL.Path, defaultFunctionsURL)
+			} else if r.URL.Path == defaultFunctionsURL {
 				body = map[string]interface{}{
 					"results": []map[string]interface{}{
 						{"functionName": "foo"},
@@ -46,6 +45,10 @@ func newFunctionsHarness(t testing.TB) *Harness {
 						{"functionName": "bar", "url": "https://api.example.com/bar"},
 					},
 				}
+			} else {
+				return &http.Response{StatusCode: http.StatusBadRequest},
+					errors.New("no such function hook is defined")
+
 			}
 		case "POST":
 			ensure.DeepEqual(t, r.URL.Path, defaultFunctionsURL)
@@ -117,16 +120,16 @@ func TestReadFuncParams(t *testing.T) {
 	defer h.Stop()
 
 	h.env.In = strings.NewReader("\n")
-	_, err := readFunctionName(h.env)
+	_, err := readFunctionName(h.env, nil)
 	ensure.Err(t, err, regexp.MustCompile("Function name cannot be empty"))
 
 	h.env.In = strings.NewReader("foo\n")
-	hook, err := readFunctionName(h.env)
+	hook, err := readFunctionName(h.env, nil)
 	ensure.Nil(t, err)
 	ensure.DeepEqual(t, *hook, functionHook{FunctionName: "foo"})
 
 	h.env.In = strings.NewReader("foo\napi.example.com/foo\n")
-	hook, err = readFunctionParams(h.env)
+	hook, err = readFunctionParams(h.env, nil)
 	ensure.Nil(t, err)
 	ensure.DeepEqual(t, *hook, functionHook{
 		FunctionName: "foo",
@@ -216,7 +219,7 @@ func TestFunctionHookDelete(t *testing.T) {
 
 	h := newFunctionsHarness(t)
 
-	var f functionHooksCmd
+	f := &functionHooksCmd{interactive: true}
 	h.env.In = strings.NewReader("foo\ny\n")
 	ensure.Nil(t, f.functionHooksDelete(h.env, nil))
 	ensure.DeepEqual(t,
