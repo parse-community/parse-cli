@@ -302,29 +302,45 @@ func (c *configureCmd) deleteHook(
 
 func (c *configureCmd) appendHookOperation(
 	e *env,
-	op string,
+	fields []string,
 	hooks []*hookOperation,
 ) (bool, []*hookOperation, error) {
-	op = strings.TrimSpace(op)
-	if op == "" {
+	if len(fields) == 0 {
 		return false, hooks, nil
 	}
 
-	fields := strings.SplitN(op, ",", 4)
-	restOp := strings.ToLower(fields[0])
-
-	switch restOp {
+	switch strings.ToLower(fields[0]) {
 	case "post", "put":
-		if len(fields) > 2 && strings.HasPrefix(fields[2], "https://") {
-			fields[2] = strings.Join(fields[2:], ",")
-			fields = fields[:3]
-		}
 		return c.postOrPutHook(e, hooks, fields...)
 
 	case "delete":
 		return c.deleteHook(e, hooks, fields...)
 	}
 	return false, nil, stackerr.Wrap(errInvalidFormat)
+}
+
+func (c *configureCmd) processHooksOperation(e *env, op string) ([]string, error) {
+	op = strings.TrimSpace(op)
+	if op == "" {
+		return nil, nil
+	}
+	fields := strings.SplitN(op, ",", 4)
+	if restOp := strings.ToLower(fields[0]); restOp != "post" && restOp != "put" {
+		return fields, nil
+	}
+	if len(fields) < 3 {
+		return nil, stackerr.Wrap(errInvalidFormat)
+	}
+
+	switch e.Type {
+	case legacyParseFormat, parseFormat:
+		if strings.HasPrefix(fields[2], "https://") {
+			fields[2] = strings.Join(fields[2:], ",")
+			fields = fields[:3]
+		}
+		return fields, nil
+	}
+	return nil, stackerr.Wrap(errInvalidFormat)
 }
 
 func (c *configureCmd) createHooksOperations(
@@ -335,13 +351,15 @@ func (c *configureCmd) createHooksOperations(
 	var (
 		hooksOps []*hookOperation
 		added    bool
-		err      error
 	)
 	lineNum := 0
 	for scanner.Scan() {
 		lineNum++
-		line := scanner.Text()
-		added, hooksOps, err = c.appendHookOperation(e, line, hooksOps)
+		fields, err := c.processHooksOperation(e, scanner.Text())
+		if err != nil {
+			return nil, err
+		}
+		added, hooksOps, err = c.appendHookOperation(e, fields, hooksOps)
 		if err != nil {
 			return nil, err
 		}

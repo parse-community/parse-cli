@@ -281,6 +281,41 @@ func TestDeleteHook(t *testing.T) {
 	)
 }
 
+func TestProcessHookOperation(t *testing.T) {
+	t.Parallel()
+
+	h := newHarness(t)
+	defer h.Stop()
+
+	c := &configureCmd{}
+
+	ops, err := c.processHooksOperation(h.env, "\n\t ")
+	ensure.Nil(t, err)
+	ensure.DeepEqual(t, len(ops), 0)
+
+	ops, err = c.processHooksOperation(h.env, "invalid")
+	ensure.Nil(t, err)
+	ensure.DeepEqual(t, ops, []string{"invalid"})
+
+	ops, err = c.processHooksOperation(h.env, "post,call,https://twilio.com/call")
+	ensure.Nil(t, err)
+	ensure.DeepEqual(t, ops, []string{"post", "call", "https://twilio.com/call"})
+
+	ops, err = c.processHooksOperation(h.env, "put,call,https://twilio.com/call_1,call_2")
+	ensure.Nil(t, err)
+	ensure.DeepEqual(t, ops, []string{"put", "call", "https://twilio.com/call_1,call_2"})
+
+	ops, err = c.processHooksOperation(h.env, "put,call,https://twilio.com/call_1,call_2,call_3")
+	ensure.Nil(t, err)
+	ensure.DeepEqual(t, ops, []string{"put", "call", "https://twilio.com/call_1,call_2,call_3"})
+
+	ops, err = c.processHooksOperation(h.env,
+		"pUt,_User,afterDelete,https://twilio.com/message_1,message_2")
+	ensure.Nil(t, err)
+	ensure.DeepEqual(t, ops, []string{"pUt", "_User", "afterDelete",
+		"https://twilio.com/message_1,message_2"})
+}
+
 func TestAppendHookOperation(t *testing.T) {
 	t.Parallel()
 
@@ -290,14 +325,15 @@ func TestAppendHookOperation(t *testing.T) {
 	c := &configureCmd{}
 
 	var hooksOps []*hookOperation
-	_, ops, err := c.appendHookOperation(h.env, "\n\t	", hooksOps)
+	_, ops, err := c.appendHookOperation(h.env, nil, hooksOps)
 	ensure.Nil(t, err)
 	ensure.DeepEqual(t, hooksOps, ops)
 
-	_, _, err = c.appendHookOperation(h.env, "invalid", nil)
+	_, _, err = c.appendHookOperation(h.env, []string{"invalid"}, nil)
 	ensure.Err(t, err, regexp.MustCompile("invalid format"))
 
-	_, ops, err = c.appendHookOperation(h.env, "post,call,https://twilio.com/call", hooksOps)
+	_, ops, err = c.appendHookOperation(h.env,
+		[]string{"post", "call", "https://twilio.com/call"}, hooksOps)
 	ensure.Nil(t, err)
 	ensure.DeepEqual(t, ops[len(ops)-1].method, "POST")
 	ensure.DeepEqual(
@@ -306,7 +342,8 @@ func TestAppendHookOperation(t *testing.T) {
 		functionHook{FunctionName: "call", URL: "https://twilio.com/call"},
 	)
 
-	_, ops, err = c.appendHookOperation(h.env, "put,call,https://twilio.com/call_1", hooksOps)
+	_, ops, err = c.appendHookOperation(h.env,
+		[]string{"put", "call", "https://twilio.com/call_1"}, hooksOps)
 	ensure.Nil(t, err)
 	ensure.DeepEqual(t, ops[len(ops)-1].method, "PUT")
 	ensure.DeepEqual(
@@ -315,28 +352,9 @@ func TestAppendHookOperation(t *testing.T) {
 		functionHook{FunctionName: "call", URL: "https://twilio.com/call_1"},
 	)
 
-	_, ops, err = c.appendHookOperation(h.env, "put,call,https://twilio.com/call_1,call_2", hooksOps)
-	ensure.Nil(t, err)
-	ensure.DeepEqual(t, ops[len(ops)-1].method, "PUT")
-	ensure.DeepEqual(
-		t,
-		*ops[len(ops)-1].function,
-		functionHook{FunctionName: "call", URL: "https://twilio.com/call_1,call_2"},
-	)
-
-	//random junk
+	//random stuff
 	_, ops, err = c.appendHookOperation(h.env,
-		"put,call,https://twilio.com/call_1,call_2,call_3", hooksOps)
-	ensure.Nil(t, err)
-	ensure.DeepEqual(t, ops[len(ops)-1].method, "PUT")
-	ensure.DeepEqual(
-		t,
-		*ops[len(ops)-1].function,
-		functionHook{FunctionName: "call", URL: "https://twilio.com/call_1,call_2,call_3"},
-	)
-
-	_, ops, err = c.appendHookOperation(h.env,
-		"posT,_User,afterDelete,https://twilio.com/message", hooksOps)
+		[]string{"posT", "_User", "afterDelete", "https://twilio.com/message"}, hooksOps)
 	ensure.Nil(t, err)
 	ensure.DeepEqual(t, ops[len(ops)-1].method, "POST")
 	ensure.DeepEqual(
@@ -346,7 +364,7 @@ func TestAppendHookOperation(t *testing.T) {
 	)
 
 	_, ops, err = c.appendHookOperation(h.env,
-		"pUt,_User,afterDelete,https://twilio.com/message_1", hooksOps)
+		[]string{"pUt", "_User", "afterDelete", "https://twilio.com/message_1"}, hooksOps)
 	ensure.Nil(t, err)
 	ensure.DeepEqual(t, ops[len(ops)-1].method, "PUT")
 	ensure.DeepEqual(
@@ -355,9 +373,9 @@ func TestAppendHookOperation(t *testing.T) {
 		triggerHook{ClassName: "_User", TriggerName: "afterDelete", URL: "https://twilio.com/message_1"},
 	)
 
-	// random junk
+	// random stuff
 	_, ops, err = c.appendHookOperation(h.env,
-		"pUt,_User,afterDelete,https://twilio.com/message_1,message_2", hooksOps)
+		[]string{"pUt", "_User", "afterDelete", "https://twilio.com/message_1,message_2"}, hooksOps)
 	ensure.Nil(t, err)
 	ensure.DeepEqual(t, ops[len(ops)-1].method, "PUT")
 	ensure.DeepEqual(
