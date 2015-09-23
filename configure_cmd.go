@@ -19,11 +19,14 @@ import (
 
 var (
 	errInvalidFormat = errors.New(
-		`invalid format. valid formats should look like:
+		`
+invalid format.
+valid formats should look like:
 [put|post],functionName,https_url
 delete,functionName
-[put|post],className,triggerName,https_url
-delete,className,triggerName
+
+[put|post],className:triggerName,https_url
+delete,className:triggerName
 `)
 
 	errPostToPut = errors.New(
@@ -330,10 +333,22 @@ func (c *configureCmd) processHooksOperation(e *env, op string) ([]string, error
 	}
 
 	fields := strings.SplitN(op, ",", 3)
-	if restOp := strings.ToLower(fields[0]); restOp != "post" && restOp != "put" {
+	switch restOp := strings.ToLower(fields[0]); restOp {
+	case "post", "put":
+		if len(fields) < 3 {
+			return nil, stackerr.Wrap(errInvalidFormat)
+		}
+	case "delete":
+		if len(fields) != 2 {
+			return nil, stackerr.Wrap(errInvalidFormat)
+		}
+		subFields := strings.SplitN(fields[1], ":", 2)
+		if len(subFields) == 2 {
+			fields = append(fields, subFields[1])
+			fields[1] = subFields[0]
+		}
 		return fields, nil
-	}
-	if len(fields) < 3 {
+	default:
 		return nil, stackerr.Wrap(errInvalidFormat)
 	}
 

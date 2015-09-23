@@ -294,9 +294,19 @@ func TestProcessHookOperation(t *testing.T) {
 	ensure.Nil(t, err)
 	ensure.DeepEqual(t, len(ops), 0)
 
-	ops, err = c.processHooksOperation(h.env, "invalid")
+	_, err = c.processHooksOperation(h.env, "invalid")
+	ensure.Err(t, err, regexp.MustCompile("invalid format"))
+
+	_, err = c.processHooksOperation(h.env, "delete,call,caller")
+	ensure.Err(t, err, regexp.MustCompile("invalid format"))
+
+	ops, err = c.processHooksOperation(h.env, "delete,call")
 	ensure.Nil(t, err)
-	ensure.DeepEqual(t, ops, []string{"invalid"})
+	ensure.DeepEqual(t, ops, []string{"delete", "call"})
+
+	ops, err = c.processHooksOperation(h.env, "delete,_User:beforeSave")
+	ensure.Nil(t, err)
+	ensure.DeepEqual(t, ops, []string{"delete", "_User", "beforeSave"})
 
 	ops, err = c.processHooksOperation(h.env, "post,call,https://twilio.com/call")
 	ensure.Nil(t, err)
