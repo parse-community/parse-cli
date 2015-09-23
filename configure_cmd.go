@@ -43,7 +43,11 @@ type configureCmd struct {
 	login       login
 	isDefault   bool
 	tokenReader io.Reader // for testing
-	hooksStrict bool
+
+	// for hooks sub-command
+	hooksStrict    bool
+	baseURL        string
+	baseWebhookURL *url.URL
 }
 
 func (c *configureCmd) accountKey(e *env) error {
@@ -324,7 +328,8 @@ func (c *configureCmd) processHooksOperation(e *env, op string) ([]string, error
 	if op == "" {
 		return nil, nil
 	}
-	fields := strings.SplitN(op, ",", 4)
+
+	fields := strings.SplitN(op, ",", 3)
 	if restOp := strings.ToLower(fields[0]); restOp != "post" && restOp != "put" {
 		return fields, nil
 	}
@@ -332,12 +337,22 @@ func (c *configureCmd) processHooksOperation(e *env, op string) ([]string, error
 		return nil, stackerr.Wrap(errInvalidFormat)
 	}
 
-	switch e.Type {
-	case legacyParseFormat, parseFormat:
-		if strings.HasPrefix(fields[2], "https://") {
-			fields[2] = strings.Join(fields[2:], ",")
-			fields = fields[:3]
+	if c.baseWebhookURL != nil {
+		u, err := c.baseWebhookURL.Parse(fields[2])
+		if err != nil {
+			return nil, stackerr.Wrap(err)
 		}
+		fields[2] = u.String()
+	}
+
+	switch subFields := strings.SplitN(fields[1], ":", 2); len(subFields) {
+	case 1:
+		return fields, nil
+	case 2:
+		fields = append(fields, fields[2])
+		fields[3] = fields[2]
+		fields[2] = subFields[1]
+		fields[1] = subFields[0]
 		return fields, nil
 	}
 	return nil, stackerr.Wrap(errInvalidFormat)
@@ -524,10 +539,29 @@ func (c *configureCmd) deployWebhooksConfig(e *env, hooksOps []*hookOperation) e
 	return nil
 }
 
+func (c *configureCmd) parseBaseURL(e *env) error {
+	if c.baseURL != "" {
+		u, err := url.Parse(c.baseURL)
+		if err != nil {
+			fmt.Fprintln(e.Err, "Invalid base webhook url provided")
+			return stackerr.Wrap(err)
+		}
+		if u.Scheme != "https" {
+			return stackerr.New("Please provide a valid https url")
+		}
+		c.baseWebhookURL = u
+	}
+	return nil
+}
+
 func (c *configureCmd) hooksCmd(e *env, ctx *context, args []string) error {
 	if len(args) > 1 {
 		return fmt.Errorf("Invalid args: %v, only an optional hooks config file is expected.", args)
 	}
+	if err := c.parseBaseURL(e); err != nil {
+		return err
+	}
+
 	reader := e.In
 	if len(args) == 1 {
 		file, err := os.Open(args[0])
@@ -603,6 +637,9 @@ func newConfigureCmd(e *env) *cobra.Command {
 	}
 	hooksCmd.Flags().BoolVarP(&c.hooksStrict, "strict", "s", c.hooksStrict,
 		"Configure hooks in strict mode, i.e., do not automatically fix errors.")
+	hooksCmd.Flags().StringVarP(&c.baseURL, "base", "b", c.baseURL,
+		`Base url to use while parsing the webhook url field.
+If provided, the config file can have relative urls.`)
 	cmd.AddCommand(hooksCmd)
 
 	return cmd

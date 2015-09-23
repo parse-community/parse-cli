@@ -2,6 +2,7 @@ package main
 
 import (
 	"io/ioutil"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -310,10 +311,30 @@ func TestProcessHookOperation(t *testing.T) {
 	ensure.DeepEqual(t, ops, []string{"put", "call", "https://twilio.com/call_1,call_2,call_3"})
 
 	ops, err = c.processHooksOperation(h.env,
-		"pUt,_User,afterDelete,https://twilio.com/message_1,message_2")
+		"pUt,_User:afterDelete,https://twilio.com/message_1,message_2")
 	ensure.Nil(t, err)
 	ensure.DeepEqual(t, ops, []string{"pUt", "_User", "afterDelete",
 		"https://twilio.com/message_1,message_2"})
+
+	u, err := url.Parse("https://parse.com")
+	ensure.Nil(t, err)
+	c.baseWebhookURL = u
+
+	ops, err = c.processHooksOperation(h.env, "post,call,https://parse.com/call")
+	ensure.Nil(t, err)
+	ensure.DeepEqual(t, ops, []string{"post", "call", "https://parse.com/call"})
+
+	ops, err = c.processHooksOperation(h.env, "post,call,https://twilio.com/call")
+	ensure.Nil(t, err)
+	ensure.DeepEqual(t, ops, []string{"post", "call", "https://twilio.com/call"})
+
+	ops, err = c.processHooksOperation(h.env, "put,call,/call_1,call_2,call_3")
+	ensure.Nil(t, err)
+	ensure.DeepEqual(t, ops, []string{"put", "call", "https://parse.com/call_1,call_2,call_3"})
+
+	ops, err = c.processHooksOperation(h.env, "put,call,https://twilio.com/call_1,call_2,call_3")
+	ensure.Nil(t, err)
+	ensure.DeepEqual(t, ops, []string{"put", "call", "https://twilio.com/call_1,call_2,call_3"})
 }
 
 func TestAppendHookOperation(t *testing.T) {
@@ -528,4 +549,19 @@ func TestDeployTriggerHooks(t *testing.T) {
 	)
 	// not an error -> will be converted to put
 	ensure.Nil(t, err)
+}
+
+func TestParseBaseURL(t *testing.T) {
+	t.Parallel()
+
+	h := newHarness(t)
+	defer h.Stop()
+
+	c := &configureCmd{}
+	c.baseURL = "http://hello"
+	ensure.Err(t, c.parseBaseURL(h.env), regexp.MustCompile("valid https url"))
+
+	c.baseURL = "https://hello"
+	ensure.Nil(t, c.parseBaseURL(h.env))
+	ensure.DeepEqual(t, c.baseWebhookURL.String(), c.baseURL)
 }
