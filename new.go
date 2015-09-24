@@ -359,6 +359,6 @@ You can also use it in non-interactive mode by using the various flags available
 	cmd.Flags().StringVarP(&nc.parseAppName, "app", "a", nc.parseAppName,
 		"Name of the Parse app you want to create or set up Cloud Code project for.")
 	cmd.Flags().StringVarP(&nc.codeLocation, "loc", "l", nc.codeLocation,
-		"Location at which the Cloud Code project will be set up.")
+		"Location, relative to the current directory, at which the Cloud Code project will be set up.")
 	return cmd
 }
