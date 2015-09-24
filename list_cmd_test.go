@@ -1,6 +1,8 @@
 package main
 
 import (
+	"io/ioutil"
+	"strings"
 	"testing"
 
 	"github.com/facebookgo/ensure"
@@ -69,4 +71,16 @@ func TestPrintListNoApps(t *testing.T) {
 	n := &newCmd{}
 	n.cloneSampleCloudCode(h.env, true)
 	ensure.Nil(t, l.printListOfApps(h.env))
+}
+
+func TestRunListCmd(t *testing.T) {
+	t.Parallel()
+
+	h, _ := newAppHarness(t)
+	defer h.Stop()
+
+	l := &listCmd{}
+	h.env.In = ioutil.NopCloser(strings.NewReader("email\npassword\n"))
+	ensure.Nil(t, l.run(h.env, []string{"A"}))
+	ensure.StringContains(t, h.Out.String(), `Properties of the app "A"`)
 }

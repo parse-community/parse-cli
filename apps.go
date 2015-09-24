@@ -248,7 +248,7 @@ func (a *apps) createApp(e *env, givenName string) (*app, error) {
 		}
 
 		if _, ok := appNames[appName]; ok {
-			fmt.Fprintf(e.Out,
+			fmt.Fprintf(e.Err,
 				`Hey! you already created an app named %q.
 The apps associated with your account:
 %s

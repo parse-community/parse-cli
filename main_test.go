@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"testing"
 
 	"github.com/facebookgo/clock"
@@ -374,4 +375,32 @@ func TestMultiErrorString(t *testing.T) {
 	ensure.StringContains(t, errStr, "multiple errors")
 	ensure.StringContains(t, errStr, `parse: api error with code=1 and message="message"`)
 	ensure.StringContains(t, errStr, ".go")
+}
+
+func TestRunWithContext(t *testing.T) {
+	t.Parallel()
+
+	h := newHarness(t)
+	h.makeEmptyRoot()
+	defer h.Stop()
+
+	n := &newCmd{}
+	h.env.Type = parseFormat
+	h.env.In = ioutil.NopCloser(strings.NewReader("\n"))
+	_, err := n.setupSample(h.env,
+		"yolo",
+		&parseAppConfig{
+			ApplicationID: "yolo-id",
+			MasterKey:     "yoda",
+		},
+		false,
+		false,
+	)
+	ensure.Nil(t, err)
+
+	dummy := func(e *env, c *context) error {
+		ensure.DeepEqual(t, c.AppConfig.getApplicationID(), "yolo-id")
+		return nil
+	}
+	runWithAppClient(h.env, dummy)
 }

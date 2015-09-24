@@ -259,6 +259,20 @@ RevokeSessionOnPasswordChange	true
 `)
 }
 
+func TestCreateNewAppNameTaken(t *testing.T) {
+	t.Parallel()
+
+	h, _ := newAppHarness(t)
+	defer h.Stop()
+
+	a := defaultApps
+
+	h.env.In = ioutil.NopCloser(strings.NewReader("A\nD"))
+	_, err := a.createApp(h.env, "")
+	ensure.Nil(t, err)
+	ensure.StringContains(t, h.Err.String(), "already created an app")
+}
+
 func TestNoPanicAppCreate(t *testing.T) {
 	t.Parallel()
 	h := newHarness(t)

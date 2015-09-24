@@ -1,7 +1,11 @@
 package main
 
 import (
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"regexp"
+	"strings"
 	"testing"
 
 	"github.com/facebookgo/ensure"
@@ -75,4 +79,52 @@ func TestUpgradeLegacyWithEmail(t *testing.T) {
 	ensure.Nil(t, err)
 	ensure.DeepEqual(t, config.Applications["app"].MasterKey, "")
 	ensure.DeepEqual(t, config.getProjectConfig().ParserEmail, "test@email.com")
+}
+
+func TestRunMigrateCmd(t *testing.T) {
+	t.Parallel()
+
+	h := newHarness(t)
+	h.makeEmptyRoot()
+	defer h.Stop()
+
+	n := &newCmd{}
+	h.env.Type = parseFormat
+	h.env.In = ioutil.NopCloser(strings.NewReader("\n"))
+	_, err := n.setupSample(h.env,
+		"yolo",
+		&parseAppConfig{
+			ApplicationID: "yolo-id",
+			MasterKey:     "yoda",
+		},
+		false,
+		false,
+	)
+	ensure.Nil(t, err)
+
+	m := &migrateCmd{}
+	err = m.run(h.env)
+	ensure.Err(t, err, regexp.MustCompile("Already using the preferred config format"))
+
+	ensure.Nil(t, os.Remove(filepath.Join(h.env.Root, parseLocal)))
+	ensure.Nil(t, os.Remove(filepath.Join(h.env.Root, parseProject)))
+
+	ensure.Nil(t, os.MkdirAll(filepath.Join(h.env.Root, configDir), 0755))
+	ensure.Nil(t,
+		ioutil.WriteFile(
+			filepath.Join(h.env.Root, legacyConfigFile),
+			[]byte(`{
+			"applications": {
+				"yolo": {
+					"applicationId": "yolo-id",
+					"masterKey": "yoda"
+				}
+			}
+		}`),
+			0600,
+		),
+	)
+
+	ensure.Nil(t, m.run(h.env))
+	ensure.StringContains(t, h.Out.String(), "Successfully migrated")
 }
