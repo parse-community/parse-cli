@@ -33,4 +33,8 @@ func TestLatestVersion(t *testing.T) {
 	latestVersion, err := u.latestVersion(h.env)
 	ensure.Nil(t, err)
 	ensure.DeepEqual(t, latestVersion, "2.0.2")
+
+	downloadURL, err := u.getDownloadURL(h.env)
+	ensure.StringContains(t,
+		downloadURL, "https://github.com/ParsePlatform/parse-cli/releases/download/release_2.0.2")
 }

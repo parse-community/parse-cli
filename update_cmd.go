@@ -41,16 +41,16 @@ func (u *updateCmd) latestVersion(e *env) (string, error) {
 	return res.Version, nil
 }
 
-func (u *updateCmd) updateCLI(e *env) (bool, error) {
+func (u *updateCmd) getDownloadURL(e *env) (string, error) {
 	ostype := runtime.GOOS
 	arch := runtime.GOARCH
 
 	latestVersion, err := u.latestVersion(e)
 	if err != nil {
-		return false, err
+		return "", err
 	}
 	if latestVersion == "" || latestVersion == version {
-		return false, nil
+		return "", nil
 	}
 
 	var downloadURL string
@@ -66,7 +66,17 @@ func (u *updateCmd) updateCLI(e *env) (bool, error) {
 			downloadURL = fmt.Sprintf(downloadURLFormat, latestVersion, linuxDownload)
 		}
 	}
+	return downloadURL, nil
+}
 
+func (u *updateCmd) updateCLI(e *env) (bool, error) {
+	downloadURL, err := u.getDownloadURL(e)
+	if err != nil {
+		return false, err
+	}
+	if downloadURL == "" {
+		return false, nil
+	}
 	exec, err := osext.Executable()
 	if err != nil {
 		return false, stackerr.Wrap(err)

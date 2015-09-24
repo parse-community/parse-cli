@@ -78,7 +78,7 @@ Directory Name: `,
 		)
 	}
 
-	fmt.Scanf("%s\n", &cloudCodeDir)
+	fmt.Fscanf(e.In, "%s\n", &cloudCodeDir)
 	cloudCodeDir = strings.TrimSpace(cloudCodeDir)
 	if cloudCodeDir == "" {
 		cloudCodeDir = appName
