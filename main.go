@@ -100,19 +100,24 @@ func main() {
 	}
 	e.ParseAPIClient = apiClient
 
-	var rootCmd *cobra.Command
+	var (
+		rootCmd *cobra.Command
+		command []string
+	)
 	switch e.Type {
 	case legacyParseFormat, parseFormat:
-		rootCmd = parseRootCmd(&e)
+		command, rootCmd = parseRootCmd(&e)
 	}
 
-	message, err := checkIfSupported(&e, version, os.Args[1:]...)
-	if err != nil {
-		fmt.Fprintln(e.Err, err)
-		os.Exit(1)
-	}
-	if message != "" {
-		fmt.Fprintln(e.Err, message)
+	if len(command) == 0 || command[0] != "update" {
+		message, err := checkIfSupported(&e, version, command...)
+		if err != nil {
+			fmt.Fprintln(e.Err, err)
+			os.Exit(1)
+		}
+		if message != "" {
+			fmt.Fprintln(e.Err, message)
+		}
 	}
 
 	if err := rootCmd.Execute(); err != nil {

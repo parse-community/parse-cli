@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func parseRootCmd(e *env) *cobra.Command {
+func parseRootCmd(e *env) ([]string, *cobra.Command) {
 	c := &cobra.Command{
 		Use: "parse",
 		Long: fmt.Sprintf(
@@ -45,7 +45,7 @@ http://parse.com`,
 	c.AddCommand(newVersionCmd(e))
 
 	if len(os.Args) <= 1 {
-		return c
+		return nil, c
 	}
 
 	commands := []string{"help"}
@@ -61,5 +61,5 @@ http://parse.com`,
 	}
 	c.SetArgs(args)
 
-	return c
+	return args, c
 }
