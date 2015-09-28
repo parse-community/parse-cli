@@ -298,7 +298,14 @@ Please login to Parse using your email and password.`,
 
 func (l *login) helpCreateToken(e *env) (string, error) {
 	for i := 0; i < 4; i++ {
-		fmt.Fprintln(e.Out, "\nInput your account key or press enter to generate a new one.")
+		fmt.Fprintf(e.Out, `
+Input your account key or press ENTER to generate a new one.
+NOTE: on pressing ENTER we'll try to open the url:
+	%q
+in default browser.
+`,
+			keysURL,
+		)
 		fmt.Fprintf(e.Out, `Account Key: `)
 
 		var token string

@@ -26,7 +26,7 @@ func TestConfigureAccountKey(t *testing.T) {
 		t,
 		h.Out.String(),
 		`
-Input your account key or press enter to generate a new one.
+Input your account key or press ENTER to generate a new one.
 `)
 
 	h.env.In = ioutil.NopCloser(strings.NewReader("invalid\n"))
