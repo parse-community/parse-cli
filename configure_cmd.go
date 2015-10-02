@@ -644,9 +644,11 @@ func newConfigureCmd(e *env) *cobra.Command {
 	cmd.AddCommand(projectCmd)
 
 	hooksCmd := &cobra.Command{
-		Use:     "hooks [filename]",
-		Short:   "Configure webhooks according to given config file",
-		Long:    "Configure webhooks for the app based on the given configuration csv file.",
+		Use:   "hooks [filename]",
+		Short: "Configure webhooks according to given config file",
+		Long: `Configure webhooks for the app based on the given configuration csv file.
+For more details read: https://parse.com/docs/js/guide#command-line-webhooks
+`,
 		Run:     runWithArgsClient(e, c.hooksCmd),
 		Aliases: []string{"webhooks"},
 	}

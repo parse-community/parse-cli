@@ -227,7 +227,7 @@ func (a *apps) restCreateApp(e *env, appName string) (*app, error) {
 	return &res, nil
 }
 
-func (a *apps) createApp(e *env, givenName string) (*app, error) {
+func (a *apps) createApp(e *env, givenName string, retries int) (*app, error) {
 	apps, err := a.restFetchApps(e)
 	if err != nil {
 		return nil, err
@@ -236,7 +236,10 @@ func (a *apps) createApp(e *env, givenName string) (*app, error) {
 	for _, app := range apps {
 		appNames[app.Name] = struct{}{}
 	}
-	for i := 0; i < numRetries; i++ {
+	if retries <= 0 {
+		retries = numRetries
+	}
+	for i := 0; i < retries; i++ {
 		var appName string
 		if givenName != "" {
 			appName = givenName

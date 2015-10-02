@@ -149,6 +149,28 @@ func TestCurlCommand(t *testing.T) {
 `)
 }
 
+func TestCreateNewAppNoCode(t *testing.T) {
+	t.Parallel()
+	h, _ := newAppHarness(t)
+	defer h.Stop()
+
+	h.env.In = ioutil.NopCloser(strings.NewReader("email\npassword"))
+	n := &newCmd{noCode: true, createNewApp: true, parseAppName: "yolo"}
+	ensure.Nil(t, n.run(h.env))
+	ensure.StringContains(t, h.Out.String(), "Successfully created")
+}
+
+func TestSelectNewAppNoCode(t *testing.T) {
+	t.Parallel()
+	h, _ := newAppHarness(t)
+	defer h.Stop()
+
+	h.env.In = ioutil.NopCloser(strings.NewReader("email\npassword\n"))
+	n := &newCmd{noCode: true, parseAppName: "A"}
+	ensure.Nil(t, n.run(h.env))
+	ensure.StringContains(t, h.Out.String(), "Successfully selected")
+}
+
 func TestShouldCreateNewApp(t *testing.T) {
 	t.Parallel()
 	h := newHarness(t)

@@ -14,7 +14,8 @@ import (
 type newCmd struct {
 	addApplication bool
 
-	noCode       bool   // do not set up/download code
+	noCode       bool   // do not setup a Cloud Code project
+	configOnly   bool   // create a Cloud Code project with only configuration, no code
 	createNewApp bool   // create a new app
 	parseAppName string // name of parse app
 	codeLocation string // location of cloud code project
@@ -150,7 +151,7 @@ func (n *newCmd) createConfigWithContent(path, content string) error {
 }
 
 func (n *newCmd) promptCreateNewApp(e *env, nonInteractive bool) (string, error) {
-	if nonInteractive {
+	if nonInteractive || n.noCode {
 		if n.createNewApp {
 			return "new", nil
 		}
@@ -205,7 +206,7 @@ Please refrain from creating a Parse project inside another Parse project.
 
 	if nonInteractive {
 		cloudCodeDir = n.codeLocation
-	} else if n.noCode {
+	} else if n.configOnly {
 		cloudCodeDir = "" // ensures that "parse new --init" inits the current directory
 	} else {
 		cloudCodeDir, err = n.getCloudCodeDir(e, name, isNew)
@@ -218,7 +219,7 @@ Please refrain from creating a Parse project inside another Parse project.
 	switch e.Type {
 	case parseFormat:
 		dumpTemplate := false
-		if !isNew && !n.noCode {
+		if !isNew && !n.configOnly {
 			// if parse app was already created try to fetch cloud code and populate dir
 			masterKey, err := appConfig.getMasterKey(e)
 			if err != nil {
@@ -248,7 +249,7 @@ This will download Cloud Code to a temporary location.
 				}
 			}
 		}
-		dumpTemplate = (isNew || dumpTemplate) && !n.noCode
+		dumpTemplate = (isNew || dumpTemplate) && !n.configOnly
 		return dumpTemplate, n.cloneSampleCloudCode(e, dumpTemplate)
 	}
 	return false, stackerr.Newf("Unknown project type: %d", e.Type)
@@ -304,14 +305,28 @@ func (n *newCmd) run(e *env) error {
 	switch decision {
 	case "new", "n":
 		isNew = true
-		app, err = apps.createApp(e, n.parseAppName)
+		var createRetries int
+		if n.noCode {
+			createRetries = 1
+		}
+		// we pass retries so that even in non interactive mode we can create an app,
+		// and failure does not print 3 times to the screen
+		app, err = apps.createApp(e, n.parseAppName, createRetries)
 		if err != nil {
 			return err
+		}
+		if n.noCode {
+			fmt.Fprintln(e.Out, "Successfully created the app.")
+			return apps.printApp(e, app)
 		}
 	case "existing", "e":
 		app, err = addCmd.selectApp(e, n.parseAppName)
 		if err != nil {
 			return err
+		}
+		if n.noCode {
+			fmt.Fprintln(e.Out, "Successfully selected the app.")
+			return apps.printApp(e, app)
 		}
 	}
 
@@ -352,8 +367,10 @@ You can also use it in non-interactive mode by using the various flags available
 `,
 		Run: runNoArgs(e, nc.run),
 	}
-	cmd.Flags().BoolVarP(&nc.noCode, "init", "i", nc.noCode,
-		"Create a Cloud Code project only with configuration, no code.")
+	cmd.Flags().BoolVarP(&nc.configOnly, "init", "i", nc.configOnly,
+		"Create a Cloud Code project only with configuration.")
+	cmd.Flags().BoolVarP(&nc.noCode, "nocode", "n", nc.noCode,
+		"Do not set up a Cloud Code project for the app. Typically used in conjunction with 'create' option")
 	cmd.Flags().BoolVarP(&nc.createNewApp, "create", "c", nc.createNewApp,
 		"Set this flag to true if you want to create a new Parse app.")
 	cmd.Flags().StringVarP(&nc.parseAppName, "app", "a", nc.parseAppName,

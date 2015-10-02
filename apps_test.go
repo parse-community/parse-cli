@@ -234,7 +234,7 @@ func TestCreateNewApp(t *testing.T) {
 
 	a := defaultApps
 	h.env.In = ioutil.NopCloser(strings.NewReader("D"))
-	app, err := a.createApp(h.env, "")
+	app, err := a.createApp(h.env, "", 0)
 	ensure.Nil(t, err)
 
 	ensure.Nil(t, a.printApp(h.env, app))
@@ -268,7 +268,7 @@ func TestCreateNewAppNameTaken(t *testing.T) {
 	a := defaultApps
 
 	h.env.In = ioutil.NopCloser(strings.NewReader("A\nD"))
-	_, err := a.createApp(h.env, "")
+	_, err := a.createApp(h.env, "", 0)
 	ensure.Nil(t, err)
 	ensure.StringContains(t, h.Err.String(), "already created an app")
 }
