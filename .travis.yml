@@ -2,9 +2,7 @@ language: go
 go:
   - 1.4.2
 script:
-  - go test -v ./... -coverprofile=coverage.txt -covermode=atomic
-after_success:
-  - bash <(curl -s https://codecov.io/bash)
+  - go test -v ./... 
 before_deploy:
   - go get github.com/mitchellh/gox
   - gox -osarch="darwin/amd64" -osarch="linux/arm" -osarch="linux/386" -osarch="windows/386" -build-toolchain
