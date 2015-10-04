@@ -218,6 +218,23 @@ Please refrain from creating a Parse project inside another Parse project.
 
 	switch e.Type {
 	case parseFormat:
+		if !n.configOnly {
+			var decision string
+			if isNew {
+				fmt.Fprint(e.Out, `
+You can either set up a blank Cloud Code project or create a template project.
+Please type [y] if you wish to set up a template Cloud Code project or [n] for blank project (y/n): `)
+			} else {
+				fmt.Fprint(e.Out, `
+You can either set up a blank Cloud Code project or download the current deployed Cloud Code.
+Please type [y] if you wish to download the current Cloud Code or [n] for blank project (y/n): `)
+			}
+			fmt.Fscanf(e.In, "%s\n", &decision)
+			if strings.TrimSpace(decision) == "n" {
+				n.configOnly = true
+			}
+		}
+
 		dumpTemplate := false
 		if !isNew && !n.configOnly {
 			// if parse app was already created try to fetch cloud code and populate dir
