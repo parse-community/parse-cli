@@ -2,37 +2,18 @@ package main
 
 import (
 	"fmt"
-	"io"
+	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
-	"runtime"
+	"strings"
+	"time"
 
+	"github.com/ParsePlatform/parse-cli/parsecli"
 	"github.com/facebookgo/clock"
+	"github.com/facebookgo/stackerr"
 	"github.com/spf13/cobra"
 )
-
-const (
-	version        = "2.2.8"
-	cloudDir       = "cloud"
-	hostingDir     = "public"
-	defaultBaseURL = "https://api.parse.com/1/"
-)
-
-var userAgent = fmt.Sprintf("parse-cli-%s-%s", runtime.GOOS, version)
-
-type env struct {
-	Root           string // project root
-	Server         string // parse api server
-	Type           int    // project type
-	ParserEmail    string // email associated with developer parse account
-	ErrorStack     bool
-	Out            io.Writer
-	Err            io.Writer
-	In             io.Reader
-	Exit           func(int)
-	Clock          clock.Clock
-	ParseAPIClient *ParseAPIClient
-}
 
 func main() {
 	// some parts of apps.go are unable to handle
@@ -44,7 +25,7 @@ func main() {
 		os.Exit(1)
 	}()
 
-	e := env{
+	e := parsecli.Env{
 		Root:        os.Getenv("PARSE_ROOT"),
 		Server:      os.Getenv("PARSE_SERVER"),
 		ErrorStack:  os.Getenv("PARSE_ERROR_STACK") == "1",
@@ -61,33 +42,33 @@ func main() {
 			fmt.Fprintf(e.Err, "Failed to get current directory:\n%s\n", err)
 			os.Exit(1)
 		}
-		root := getProjectRoot(&e, cur)
-		if isProjectDir(root) {
+		root := parsecli.GetProjectRoot(&e, cur)
+		if parsecli.IsProjectDir(root) {
 			e.Root = root
-			config, err := configFromDir(root)
+			config, err := parsecli.ConfigFromDir(root)
 			if err != nil {
 				fmt.Fprintln(e.Err, err)
 				os.Exit(1)
 			}
-			e.Type = config.getProjectConfig().Type
+			e.Type = config.GetProjectConfig().Type
 			if e.ParserEmail == "" {
-				e.ParserEmail = config.getProjectConfig().ParserEmail
+				e.ParserEmail = config.GetProjectConfig().ParserEmail
 			}
 		} else {
-			e.Type = legacyParseFormat
-			e.Root = getLegacyProjectRoot(&e, cur)
+			e.Type = parsecli.LegacyParseFormat
+			e.Root = parsecli.GetLegacyProjectRoot(&e, cur)
 		}
 	}
-	if e.Type != legacyParseFormat && e.Type != parseFormat {
+	if e.Type != parsecli.LegacyParseFormat && e.Type != parsecli.ParseFormat {
 		fmt.Fprintf(e.Err, "Unknown project type %d.\n", e.Type)
 		os.Exit(1)
 	}
 
 	if e.Server == "" {
-		e.Server = defaultBaseURL
+		e.Server = parsecli.DefaultBaseURL
 	}
 
-	apiClient, err := newParseAPIClient(&e)
+	apiClient, err := parsecli.NewParseAPIClient(&e)
 	if err != nil {
 		fmt.Fprintln(e.Err, err)
 		os.Exit(1)
@@ -99,12 +80,12 @@ func main() {
 		command []string
 	)
 	switch e.Type {
-	case legacyParseFormat, parseFormat:
+	case parsecli.LegacyParseFormat, parsecli.ParseFormat:
 		command, rootCmd = parseRootCmd(&e)
 	}
 
 	if len(command) == 0 || command[0] != "update" {
-		message, err := checkIfSupported(&e, version, command...)
+		message, err := checkIfSupported(&e, parsecli.Version, command...)
 		if err != nil {
 			fmt.Fprintln(e.Err, err)
 			os.Exit(1)
@@ -118,4 +99,36 @@ func main() {
 		// Error is already printed in Execute()
 		os.Exit(1)
 	}
+}
+
+func checkIfSupported(e *parsecli.Env, version string, args ...string) (string, error) {
+	v := make(url.Values)
+	v.Set("version", version)
+	v.Set("other", strings.Join(args, " "))
+	req := &http.Request{
+		Method: "GET",
+		URL:    &url.URL{Path: "supported", RawQuery: v.Encode()},
+	}
+
+	type result struct {
+		warning string
+		err     error
+	}
+
+	timeout := make(chan *result, 1)
+	go func() {
+		var res struct {
+			Warning string `json:"warning"`
+		}
+		_, err := e.ParseAPIClient.Do(req, nil, &res)
+		timeout <- &result{warning: res.Warning, err: err}
+	}()
+
+	select {
+	case res := <-timeout:
+		return res.warning, stackerr.Wrap(res.err)
+	case <-time.After(time.Duration(500) * time.Millisecond):
+		return "", nil
+	}
+	return "", nil
 }
