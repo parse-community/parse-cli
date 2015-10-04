@@ -14,6 +14,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/bgentry/heroku-go"
 	"github.com/facebookgo/clock"
 	"github.com/facebookgo/ensure"
 	"github.com/facebookgo/parse"
@@ -21,7 +22,7 @@ import (
 )
 
 const (
-	Version        = "2.2.9"
+	Version        = "3.0.0"
 	CloudDir       = "cloud"
 	HostingDir     = "public"
 	DefaultBaseURL = "https://api.parse.com/1/"
@@ -30,17 +31,18 @@ const (
 var UserAgent = fmt.Sprintf("parse-cli-%s-%s", runtime.GOOS, Version)
 
 type Env struct {
-	Root           string // project root
-	Server         string // parse api server
-	Type           int    // project type
-	ParserEmail    string // email associated with developer parse account
-	ErrorStack     bool
-	Out            io.Writer
-	Err            io.Writer
-	In             io.Reader
-	Exit           func(int)
-	Clock          clock.Clock
-	ParseAPIClient *ParseAPIClient
+	Root            string // project root
+	Server          string // parse api server
+	Type            int    // project type
+	ParserEmail     string // email associated with developer parse account
+	ErrorStack      bool
+	Out             io.Writer
+	Err             io.Writer
+	In              io.Reader
+	Exit            func(int)
+	Clock           clock.Clock
+	ParseAPIClient  *ParseAPIClient
+	HerokuAPIClient *heroku.Client
 }
 
 type Harness struct {

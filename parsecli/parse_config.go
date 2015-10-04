@@ -37,7 +37,7 @@ func (c *ParseAppConfig) GetMasterKey(e *Env) (string, error) {
 	if c.masterKey != "" {
 		return c.masterKey, nil
 	}
-	app, err := fetchAppKeys(e, c.GetApplicationID())
+	app, err := FetchAppKeys(e, c.GetApplicationID())
 	if err != nil {
 		return "", err
 	}

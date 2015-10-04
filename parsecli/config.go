@@ -13,6 +13,7 @@ import (
 const (
 	LegacyParseFormat = iota
 	ParseFormat
+	HerokuFormat
 
 	ParseLocal   = ".parse.local"
 	ParseProject = ".parse.project"
@@ -111,6 +112,17 @@ func ConfigFromDir(dir string) (Config, error) {
 		}
 		c.ProjectConfig = p
 		return c, nil
+
+	case HerokuFormat:
+		c, err := readHerokuConfigFile(configFile)
+		if err != nil {
+			return nil, canonicalize(err)
+		}
+		if c.Applications == nil {
+			c.Applications = make(map[string]*HerokuAppConfig)
+		}
+		c.ProjectConfig = p
+		return c, nil
 	}
 
 	return nil, stackerr.Newf("Unknown project type: %d.", p.Type)
@@ -138,7 +150,7 @@ func StoreConfig(e *Env, c Config) error {
 			lconf,
 			filepath.Join(e.Root, LegacyConfigFile),
 		)
-	case ParseFormat:
+	case ParseFormat, HerokuFormat:
 		return writeConfigFile(c, filepath.Join(e.Root, ParseLocal))
 	}
 	return stackerr.Newf("Unknown project type: %d.", projectType)
@@ -181,7 +193,7 @@ func StoreProjectConfig(e *Env, c Config) error {
 			filepath.Join(e.Root, LegacyConfigFile),
 		)
 
-	case ParseFormat:
+	case ParseFormat, HerokuFormat:
 		return writeProjectConfig(p, filepath.Join(e.Root, ParseProject))
 	}
 
@@ -236,6 +248,13 @@ func SetDefault(e *Env, newDefault, defaultApp string, c Config) error {
 			return stackerr.New("Invalid Cloud Code config.")
 		}
 		return setParseDefault(e, newDefault, defaultApp, p)
+
+	case HerokuFormat:
+		h, ok := c.(*HerokuConfig)
+		if !ok {
+			return stackerr.New("Invalid Cloud Code config.")
+		}
+		return SetHerokuDefault(e, newDefault, defaultApp, h)
 	}
 
 	return stackerr.Newf("Unknown project type: %d.", projectType)

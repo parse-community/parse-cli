@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/bgentry/heroku-go"
 	"github.com/facebookgo/parse"
 	"github.com/facebookgo/stackerr"
 )
@@ -23,6 +24,10 @@ func NewParseAPIClient(e *Env) (*ParseAPIClient, error) {
 			BaseURL: baseURL,
 		},
 	}, nil
+}
+
+func NewHerokuAPIClient(e *Env) (*heroku.Client, error) {
+	return &heroku.Client{}, nil
 }
 
 func (c *ParseAPIClient) appendCommonHeaders(header http.Header) http.Header {

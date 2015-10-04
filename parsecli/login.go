@@ -42,12 +42,16 @@ to reset your password`)
 	tokenErrMsgf = `Sorry, the account key: %q you provided is not valid.
 Please follow instructions at %q to generate a new one.
 `
-	keyNotFound = regexp.MustCompile("Could not find account key")
-	parseNetrc  = filepath.Join(".parse", "netrc")
+	keyNotConfigured = regexp.MustCompile("Account key not configured")
+
+	parseNetrc = filepath.Join(".parse", "netrc")
 )
 
-func accessKeyNotFound(err error) bool {
-	return keyNotFound.MatchString(err.Error())
+func accountKeyNotConfigured(err error) bool {
+	if err == nil {
+		return false
+	}
+	return keyNotConfigured.MatchString(err.Error())
 }
 
 func (l *Login) populateCreds(e *Env) error {
@@ -231,12 +235,34 @@ func (l *Login) AuthToken(e *Env, token string) (string, error) {
 	return res.Email, nil
 }
 
-func (l *Login) authUserWithToken(e *Env) (string, error) {
+func (l *Login) AuthUserWithToken(e *Env, strict bool) (string, error) {
 	_, tokenCredentials, err := l.GetTokenCredentials(e, e.ParserEmail)
 	if err != nil {
-		if stackerr.HasUnderlying(err, stackerr.MatcherFunc(accessKeyNotFound)) {
-			fmt.Fprintln(e.Err, ErrorString(e, err))
+		// user never created an account key: educate them
+		if stackerr.HasUnderlying(err, stackerr.MatcherFunc(os.IsNotExist)) {
+			if strict {
+				fmt.Fprintln(
+					e.Out,
+					`To proceed further, you must configure an account key.
+`,
+				)
+			} else {
+				fmt.Fprintln(
+					e.Out,
+					`We've changed the way the CLI works.
+To save time logging in, you should create an account key.
+`,
+				)
+
+			}
+
+			fmt.Fprintln(
+				e.Out,
+				`Type "parse configure accountkey" to create a new account key.
+Read more at: https://parse.com/docs/js/guide#command-line-account-keys`)
+			return "", stackerr.New("Account key not configured")
 		}
+
 		return "", err
 	}
 
@@ -250,29 +276,26 @@ func (l *Login) authUserWithToken(e *Env) (string, error) {
 	return email, nil
 }
 
-func (l *Login) AuthUser(e *Env) error {
-	_, err := l.authUserWithToken(e)
+func (l *Login) AuthUser(e *Env, strict bool) error {
+	_, err := l.AuthUserWithToken(e, strict)
 	if err == nil {
 		return nil
 	}
+	if strict {
+		return err
+	}
 
-	// user never created an account key: educate them
-	if stackerr.HasUnderlying(err, stackerr.MatcherFunc(os.IsNotExist)) {
+	if !stackerr.HasUnderlying(err, stackerr.MatcherFunc(accountKeyNotConfigured)) {
 		fmt.Fprintln(
 			e.Out,
-			`We've changed the way the CLI works.
-To save time logging in, you should create an account key.
-`)
+			`Type "parse configure accountkey" to create a new account key.
+Read more at: https://parse.com/docs/js/guide#command-line-account-keys
+
+Please login to Parse using your email and password.`,
+		)
 	}
 
 	apps := &Apps{}
-	fmt.Fprintln(
-		e.Out,
-		`Type "parse configure accountkey" to create a new account key.
-Read more at: https://parse.com/docs/cloudcode/guide#command-line-account-keys
-
-Please login to Parse using your email and password.`,
-	)
 	for i := 0; i < numRetries; i++ {
 		err := l.populateCreds(e)
 		if err != nil {

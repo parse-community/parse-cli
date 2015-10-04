@@ -33,7 +33,7 @@ func (l *listCmd) run(e *parsecli.Env, args []string) error {
 	l.printListOfApps(e)
 
 	var apps parsecli.Apps
-	if err := apps.Login.AuthUser(e); err != nil {
+	if err := apps.Login.AuthUser(e, false); err != nil {
 		return err
 	}
 	var appName string

@@ -32,9 +32,9 @@ func TestCloudCodeHelpMessage(t *testing.T) {
 		msg,
 		fmt.Sprintf(
 			`Your Cloud Code has been created at %s.
-Next, you might want to deploy this code with "parse deploy".
-This includes a "Hello world" cloud function, so once you deploy
-you can test that it works, with:`,
+
+This includes a "Hello world" cloud function, so once you deploy,
+you can test that it works, with`,
 			h.Env.Root,
 		),
 	)
@@ -137,8 +137,11 @@ func TestNewCmdContent(t *testing.T) {
 
 func TestCurlCommand(t *testing.T) {
 	t.Parallel()
+	h := parsecli.NewHarness(t)
+	defer h.Stop()
+
 	n := &newCmd{}
-	command := n.curlCommand(&parsecli.App{ApplicationID: "AppID", RestKey: "RestKey"})
+	command := n.curlCommand(h.Env, &parsecli.App{ApplicationID: "AppID", RestKey: "RestKey"})
 	ensure.DeepEqual(t,
 		command,
 		`curl -X POST \

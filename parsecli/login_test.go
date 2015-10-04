@@ -48,7 +48,7 @@ func TestGetTokenCredentials(t *testing.T) {
 	)
 	h.Env.Server = "http://api.parse.com"
 	_, credentials, err = l.GetTokenCredentials(h.Env, "")
-	ensure.Err(t, err, keyNotFound)
+	ensure.Err(t, err, regexp.MustCompile("Could not find account key"))
 
 	l = &Login{}
 	h.Env.Server = "http://api.example.com/1/"
@@ -71,7 +71,7 @@ func TestGetTokenCredentials(t *testing.T) {
 	)
 	h.Env.Server = "http://api.parse.com"
 	_, credentials, err = l.GetTokenCredentials(h.Env, "email")
-	ensure.Err(t, err, keyNotFound)
+	ensure.Err(t, err, regexp.MustCompile("Could not find account key"))
 
 	l = &Login{}
 	h.Env.Server = "http://api.example.com/1/"
@@ -120,7 +120,7 @@ func TestAuthUserWithToken(t *testing.T) {
 			password token
 		`,
 	)
-	_, err := l.authUserWithToken(h.Env)
+	_, err := l.AuthUserWithToken(h.Env, false)
 	ensure.Nil(t, err)
 
 	h.Env.ParserEmail = "email2"
@@ -131,7 +131,7 @@ func TestAuthUserWithToken(t *testing.T) {
 			password token
 		`,
 	)
-	_, err = l.authUserWithToken(h.Env)
+	_, err = l.AuthUserWithToken(h.Env, false)
 	ensure.Err(t, err, regexp.MustCompile(`does not belong to "email2"`))
 
 	h.Env.ParserEmail = ""
@@ -142,7 +142,7 @@ func TestAuthUserWithToken(t *testing.T) {
 			password token2
 		`,
 	)
-	_, err = l.authUserWithToken(h.Env)
+	_, err = l.AuthUserWithToken(h.Env, false)
 	ensure.Err(t, err, regexp.MustCompile("provided is not valid"))
 
 }

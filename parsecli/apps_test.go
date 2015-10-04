@@ -26,7 +26,7 @@ func TestFetchAppKeys(t *testing.T) {
 	defer h.Stop()
 
 	h.Env.In = ioutil.NopCloser(strings.NewReader("email\npassword\n"))
-	app, err := fetchAppKeys(h.Env, "an-app")
+	app, err := FetchAppKeys(h.Env, "an-app")
 	ensure.Nil(t, err)
 	ensure.DeepEqual(t, app, newTestApp("an-app"))
 }

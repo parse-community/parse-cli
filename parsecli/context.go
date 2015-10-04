@@ -1,6 +1,11 @@
 package parsecli
 
-import "github.com/facebookgo/parse"
+import (
+	"fmt"
+	"net/http"
+
+	"github.com/facebookgo/parse"
+)
 
 type Context struct {
 	Config    Config
@@ -29,6 +34,17 @@ func newContext(e *Env, appName string) (*Context, error) {
 			MasterKey:     masterKey,
 		},
 	)
+
+	if e.HerokuAPIClient != nil {
+		authToken, err := app.GetApplicationAuth(e)
+		if err != nil {
+			return nil, err
+		}
+		headers := make(http.Header)
+		headers.Add("Authorization", fmt.Sprintf("Bearer %s", authToken))
+		e.HerokuAPIClient.AdditionalHeaders = headers
+		e.HerokuAPIClient.UserAgent = UserAgent
+	}
 
 	return &Context{
 		AppName:   appName,

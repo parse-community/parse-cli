@@ -90,9 +90,9 @@ func getAuthHeaders(credentials *Credentials, headers http.Header) http.Header {
 	return headers
 }
 
-func fetchAppKeys(e *Env, appID string) (*App, error) {
+func FetchAppKeys(e *Env, appID string) (*App, error) {
 	l := &Login{}
-	err := l.AuthUser(e)
+	err := l.AuthUser(e, false)
 	if err != nil {
 		return nil, err
 	}
