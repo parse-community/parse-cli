@@ -34,12 +34,6 @@ type env struct {
 	ParseAPIClient *ParseAPIClient
 }
 
-type client struct {
-	Config    config
-	AppName   string
-	AppConfig appConfig
-}
-
 func main() {
 	// some parts of apps.go are unable to handle
 	// interrupts, this logic ensures we exit on system interrupts
