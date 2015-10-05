@@ -21,7 +21,7 @@ func TestPrintListOneAppNoDefaultKey(t *testing.T) {
 	h := parsecli.NewHarness(t)
 	defer h.Stop()
 	conf.PrettyPrintApps(h.Env)
-	ensure.DeepEqual(t, h.Out.String(), "The following apps are associated with cloud code in the current directory:\n  first\n")
+	ensure.DeepEqual(t, h.Out.String(), "The following apps are associated with Cloud Code in the current directory:\n  first\n")
 }
 
 func TestPrintListOneAppWithDefaultKey(t *testing.T) {
@@ -32,7 +32,7 @@ func TestPrintListOneAppWithDefaultKey(t *testing.T) {
 	h := parsecli.NewHarness(t)
 	defer h.Stop()
 	conf.PrettyPrintApps(h.Env)
-	ensure.DeepEqual(t, h.Out.String(), "The following apps are associated with cloud code in the current directory:\n* first\n")
+	ensure.DeepEqual(t, h.Out.String(), "The following apps are associated with Cloud Code in the current directory:\n* first\n")
 }
 
 func TestPrintListTwoAppsWithDefaultKey(t *testing.T) {
@@ -43,7 +43,7 @@ func TestPrintListTwoAppsWithDefaultKey(t *testing.T) {
 	h := parsecli.NewHarness(t)
 	defer h.Stop()
 	conf.PrettyPrintApps(h.Env)
-	ensure.DeepEqual(t, h.Out.String(), "The following apps are associated with cloud code in the current directory:\n* first\n  second\n")
+	ensure.DeepEqual(t, h.Out.String(), "The following apps are associated with Cloud Code in the current directory:\n* first\n  second\n")
 }
 
 func TestPrintListTwoAppsWithLinks(t *testing.T) {
@@ -53,7 +53,7 @@ func TestPrintListTwoAppsWithLinks(t *testing.T) {
 	h := parsecli.NewHarness(t)
 	defer h.Stop()
 	conf.PrettyPrintApps(h.Env)
-	ensure.DeepEqual(t, h.Out.String(), "The following apps are associated with cloud code in the current directory:\n* first\n  second -> first\n")
+	ensure.DeepEqual(t, h.Out.String(), "The following apps are associated with Cloud Code in the current directory:\n* first\n  second -> first\n")
 }
 func TestPrintListNoConfig(t *testing.T) {
 	t.Parallel()

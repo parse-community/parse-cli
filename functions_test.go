@@ -226,7 +226,7 @@ func TestFunctionHookDelete(t *testing.T) {
 	ensure.DeepEqual(t,
 		h.Out.String(),
 		`Please enter the function name: Are you sure you want to delete webhook function: "foo" (y/n): Successfully deleted webhook function "foo"
-Function "foo" defined in cloud code will be used henceforth
+Function "foo" defined in Cloud Code will be used henceforth
 `)
 
 	h.Out.Reset()

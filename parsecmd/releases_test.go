@@ -83,7 +83,7 @@ func TestReleasesCmdPrintVersion(t *testing.T) {
 	h.Out.Reset()
 	err = r.printFiles("v1", releases, h.Env)
 	ensure.Nil(t, err)
-	ensure.DeepEqual(t, h.Out.String(), `Deployed cloud code files:
+	ensure.DeepEqual(t, h.Out.String(), `Deployed Cloud Code files:
 app.js
 main.js
 views/index.js
@@ -92,7 +92,7 @@ views/index.js
 	h.Out.Reset()
 	err = r.printFiles("v2", releases, h.Env)
 	ensure.Nil(t, err)
-	ensure.DeepEqual(t, h.Out.String(), `Deployed cloud code files:
+	ensure.DeepEqual(t, h.Out.String(), `Deployed Cloud Code files:
 app.js
 main.js
 views/docs.js

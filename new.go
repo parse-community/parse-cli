@@ -20,7 +20,7 @@ type newCmd struct {
 	configOnly   bool   // create a Cloud Code project with only configuration, no code
 	createNewApp bool   // create a new app
 	parseAppName string // name of parse app
-	codeLocation string // location of cloud code project
+	codeLocation string // location of Cloud Code project
 }
 
 func (n *newCmd) curlCommand(app *parsecli.App) string {

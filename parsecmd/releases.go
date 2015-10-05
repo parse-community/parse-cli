@@ -62,7 +62,7 @@ Note that you can list files for all releases shown in "parse releases"`,
 		return stackerr.Wrap(err)
 	}
 	if len(versionFileNames.Cloud) != 0 {
-		fmt.Fprintf(e.Out, "Deployed cloud code files:\n")
+		fmt.Fprintf(e.Out, "Deployed Cloud Code files:\n")
 		r.printFileNames(versionFileNames.Cloud, e)
 	}
 	if len(versionFileNames.Cloud) != 0 && len(versionFileNames.Public) != 0 {

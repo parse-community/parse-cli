@@ -13,7 +13,7 @@ func CloneSampleCloudCode(
 	appConfig parsecli.AppConfig) (bool, error) {
 	dumpTemplate := false
 	if !isNew && !configOnly {
-		// if parse app was already created try to fetch cloud code and populate dir
+		// if parse app was already created try to fetch Cloud Code and populate dir
 		masterKey, err := appConfig.GetMasterKey(e)
 		if err != nil {
 			return false, err

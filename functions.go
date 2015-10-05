@@ -187,7 +187,7 @@ func (h *functionHooksCmd) functionHooksDelete(e *parsecli.Env, ctx *parsecli.Co
 		}
 		fmt.Fprintf(e.Out, "Successfully deleted webhook function %q\n", params.FunctionName)
 		if res.FunctionName != "" {
-			fmt.Fprintf(e.Out, "Function %q defined in cloud code will be used henceforth\n", res.FunctionName)
+			fmt.Fprintf(e.Out, "Function %q defined in Cloud Code will be used henceforth\n", res.FunctionName)
 		}
 	}
 
@@ -205,8 +205,8 @@ func NewFunctionHooksCmd(e *parsecli.Env) *cobra.Command {
 
 	c := &cobra.Command{
 		Use:   "functions",
-		Short: "List cloud code functions and function webhooks",
-		Long:  "List cloud code functions and function webhooks",
+		Short: "List Cloud Code functions and function webhooks",
+		Long:  "List Cloud Code functions and function webhooks",
 		Run:   parsecli.RunWithClient(e, h.functionHooks),
 	}
 

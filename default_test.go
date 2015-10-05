@@ -71,7 +71,7 @@ func TestSetDefaultInvalid(t *testing.T) {
 		regexp.MustCompile(`Invalid application name "invalid". Please select from the valid applications printed above.`),
 	)
 	ensure.DeepEqual(t, h.Out.String(),
-		`The following apps are associated with cloud code in the current directory:
+		`The following apps are associated with Cloud Code in the current directory:
 * first
   second
 `)
@@ -129,7 +129,7 @@ func TestLegacySetDefaultInvalid(t *testing.T) {
 		regexp.MustCompile(`Invalid application name "invalid". Please select from the valid applications printed above.`),
 	)
 	ensure.DeepEqual(t, h.Out.String(),
-		`The following apps are associated with cloud code in the current directory:
+		`The following apps are associated with Cloud Code in the current directory:
 * first
   second
 `)

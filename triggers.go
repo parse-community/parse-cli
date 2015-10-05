@@ -214,8 +214,8 @@ func NewTriggerHooksCmd(e *parsecli.Env) *cobra.Command {
 
 	c := &cobra.Command{
 		Use:   "triggers",
-		Short: "List cloud code triggers and trigger webhooks",
-		Long:  "List cloud code triggers and trigger webhooks",
+		Short: "List Cloud Code triggers and trigger webhooks",
+		Long:  "List Cloud Code triggers and trigger webhooks",
 		Run:   parsecli.RunWithClient(e, h.triggerHooks),
 	}
 

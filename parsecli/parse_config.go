@@ -121,7 +121,7 @@ func (c *ParseConfig) PrettyPrintApps(e *Env) {
 
 	fmt.Fprintln(
 		e.Out,
-		"The following apps are associated with cloud code in the current directory:",
+		"The following apps are associated with Cloud Code in the current directory:",
 	)
 
 	for _, appName := range appNames {
