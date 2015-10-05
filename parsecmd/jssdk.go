@@ -90,7 +90,7 @@ func (j *jsSDKCmd) setVersion(e *parsecli.Env, c *parsecli.Context) error {
 
 // useLatestJSSDK is a utility method used by deploy & develop
 // to write set jssdk version to latest available, if none set
-func useLatestJSSDK(e *parsecli.Env) error {
+func UseLatestJSSDK(e *parsecli.Env) error {
 	var j jsSDKCmd
 	versions, err := j.getAllJSSdks(e)
 	if err != nil {

@@ -7,17 +7,18 @@ import (
 	"github.com/facebookgo/stackerr"
 )
 
-func (a *addCmd) getParseAppConfig(app *parsecli.App) *parsecli.ParseAppConfig {
+func GetParseAppConfig(app *parsecli.App) *parsecli.ParseAppConfig {
 	pc := &parsecli.ParseAppConfig{
 		ApplicationID: app.ApplicationID,
 	}
 	return pc.WithInternalMasterKey(app.MasterKey)
 }
 
-func (a *addCmd) addSelectedParseApp(
+func AddSelectedParseApp(
 	appName string,
 	appConfig *parsecli.ParseAppConfig,
 	args []string,
+	makeDefault, verbose bool,
 	e *parsecli.Env,
 ) error {
 	config, err := parsecli.ConfigFromDir(e.Root)
@@ -48,7 +49,7 @@ func (a *addCmd) addSelectedParseApp(
 		}
 	}
 
-	if a.MakeDefault {
+	if makeDefault {
 		if _, ok := parseConfig.Applications[parsecli.DefaultKey]; ok {
 			return stackerr.New(`Default key already set. To override default, use command "parse default"`)
 		}
@@ -58,9 +59,9 @@ func (a *addCmd) addSelectedParseApp(
 	if err := parsecli.StoreConfig(e, parseConfig); err != nil {
 		return err
 	}
-	if a.verbose {
+	if verbose {
 		fmt.Fprintf(e.Out, "Written config for %q\n", appName)
-		if a.MakeDefault {
+		if makeDefault {
 			fmt.Fprintf(e.Out, "Set %q as default\n", appName)
 		}
 	}

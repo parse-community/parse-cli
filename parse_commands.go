@@ -26,7 +26,7 @@ http://parse.com`,
 		},
 	}
 
-	c.AddCommand(parsecmd.NewAddCmd(e))
+	c.AddCommand(NewAddCmd(e))
 	c.AddCommand(NewConfigureCmd(e))
 	c.AddCommand(NewDefaultCmd(e))
 	c.AddCommand(parsecmd.NewDeployCmd(e))
@@ -37,8 +37,8 @@ http://parse.com`,
 	c.AddCommand(parsecmd.NewJsSdkCmd(e))
 	c.AddCommand(NewListCmd(e))
 	c.AddCommand(parsecmd.NewLogsCmd(e))
-	c.AddCommand(parsecmd.NewMigrateCmd(e))
-	c.AddCommand(parsecmd.NewNewCmd(e))
+	c.AddCommand(NewMigrateCmd(e))
+	c.AddCommand(NewNewCmd(e))
 	c.AddCommand(parsecmd.NewReleasesCmd(e))
 	c.AddCommand(parsecmd.NewRollbackCmd(e))
 	c.AddCommand(parsecmd.NewSymbolsCmd(e))

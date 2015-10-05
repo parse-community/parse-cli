@@ -363,7 +363,7 @@ func (d *deployCmd) deploy(
 		fmt.Fprintln(e.Err,
 			"JS SDK version not set, setting it to latest available JS SDK version",
 		)
-		if err := useLatestJSSDK(e); err != nil {
+		if err := UseLatestJSSDK(e); err != nil {
 			return nil, err
 		}
 	}

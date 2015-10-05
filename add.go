@@ -1,7 +1,8 @@
-package parsecmd
+package main
 
 import (
 	"github.com/ParsePlatform/parse-cli/parsecli"
+	"github.com/ParsePlatform/parse-cli/parsecmd"
 	"github.com/facebookgo/stackerr"
 	"github.com/spf13/cobra"
 )
@@ -24,7 +25,7 @@ func (a *addCmd) addSelectedApp(
 		if !ok {
 			return stackerr.New("invalid parse app config passed.")
 		}
-		return a.addSelectedParseApp(name, parseAppConfig, args, e)
+		return parsecmd.AddSelectedParseApp(name, parseAppConfig, args, a.MakeDefault, a.verbose, e)
 	}
 
 	return stackerr.Newf("Unknown project type: %d.", e.Type)
@@ -68,7 +69,7 @@ func (a *addCmd) run(e *parsecli.Env, args []string) error {
 	if err != nil {
 		return err
 	}
-	appConfig := a.getParseAppConfig(app)
+	appConfig := parsecmd.GetParseAppConfig(app)
 	return a.addSelectedApp(app.Name, appConfig, args, e)
 }
 

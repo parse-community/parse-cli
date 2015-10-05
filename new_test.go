@@ -1,4 +1,4 @@
-package parsecmd
+package main
 
 import (
 	"fmt"
@@ -216,6 +216,9 @@ func TestSetupAndConfigure(t *testing.T) {
 	ensure.Nil(t, err)
 	ensure.True(t, code)
 
+	type jsSDKVersion struct {
+		JS []string `json:"js"`
+	}
 	ht := parsecli.TransportFunc(func(r *http.Request) (*http.Response, error) {
 		ensure.DeepEqual(t, r.URL.Path, "/1/jsVersions")
 		rows := jsSDKVersion{JS: []string{"1.5.0", "1.6.0"}}

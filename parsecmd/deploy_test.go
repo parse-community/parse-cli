@@ -1,6 +1,7 @@
 package parsecmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -15,6 +16,12 @@ import (
 	"github.com/facebookgo/ensure"
 	"github.com/facebookgo/parse"
 )
+
+func jsonStr(t testing.TB, v interface{}) string {
+	b, err := json.Marshal(v)
+	ensure.Nil(t, err)
+	return string(b)
+}
 
 func createParseProject(t testing.TB) *parsecli.Harness {
 	h := parsecli.NewHarness(t)

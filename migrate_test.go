@@ -1,4 +1,4 @@
-package parsecmd
+package main
 
 import (
 	"io/ioutil"

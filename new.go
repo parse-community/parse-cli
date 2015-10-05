@@ -1,4 +1,4 @@
-package parsecmd
+package main
 
 import (
 	"fmt"
@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/ParsePlatform/parse-cli/parsecli"
+	"github.com/ParsePlatform/parse-cli/parsecmd"
 	"github.com/facebookgo/parse"
 	"github.com/facebookgo/stackerr"
 	"github.com/spf13/cobra"
@@ -209,40 +210,7 @@ Please type [y] if you wish to download the current Cloud Code or [n] for blank 
 				n.configOnly = true
 			}
 		}
-
-		dumpTemplate := false
-		if !isNew && !n.configOnly {
-			// if parse app was already created try to fetch cloud code and populate dir
-			masterKey, err := appConfig.GetMasterKey(e)
-			if err != nil {
-				return false, err
-			}
-			e.ParseAPIClient = e.ParseAPIClient.WithCredentials(
-				parse.MasterKey{
-					ApplicationID: appConfig.GetApplicationID(),
-					MasterKey:     masterKey,
-				},
-			)
-
-			d := &downloadCmd{destination: e.Root}
-			err = d.run(e, nil)
-			if err != nil {
-				if err == errNoFiles {
-					dumpTemplate = true
-				} else {
-					fmt.Fprintln(
-						e.Out,
-						`
-NOTE: If you like to fetch the latest deployed Cloud Code from Parse, 
-you can use the "parse download" command after finishing the set up.
-This will download Cloud Code to a temporary location.
-`,
-					)
-				}
-			}
-		}
-		dumpTemplate = (isNew || dumpTemplate) && !n.configOnly
-		return dumpTemplate, parsecli.CloneSampleCloudCode(e, dumpTemplate)
+		return parsecmd.CloneSampleCloudCode(e, isNew, n.configOnly, appConfig)
 	}
 	return false, stackerr.Newf("Unknown project type: %d", e.Type)
 }
@@ -270,7 +238,7 @@ func (n *newCmd) configureSample(
 	)
 
 	if e.Type == parsecli.ParseFormat {
-		return useLatestJSSDK(e)
+		return parsecmd.UseLatestJSSDK(e)
 	}
 	return nil
 }
@@ -323,7 +291,7 @@ func (n *newCmd) run(e *parsecli.Env) error {
 	}
 
 	e.Type = parsecli.ParseFormat
-	appConfig := addCmd.getParseAppConfig(app)
+	appConfig := parsecmd.GetParseAppConfig(app)
 
 	dumpTemplate, err := n.setupSample(e, app.Name, appConfig, isNew, nonInteractive)
 	if err != nil {
