@@ -29,7 +29,7 @@ OPERATION ->
 
 {"op": "put", "trigger": {"className": "cname", "triggerName": "tname", "url":"https_url"}}
 {"op": "post", "trigger": {"className": "cname", "triggerName": "tname", "url":"https_url"}}
-{"op": "delete", "trigger": {"className": "cname", "triggerName": "tname",}}
+{"op": "delete", "trigger": {"className": "cname", "triggerName": "tname"}}
 `)
 
 	errPostToPut = errors.New(
