@@ -1,4 +1,4 @@
-package main
+package webhooks
 
 import (
 	"errors"
@@ -17,6 +17,14 @@ type functionHook struct {
 	FunctionName string `json:"functionName,omitempty"`
 	URL          string `json:"url,omitempty"`
 	Warning      string `json:"warning,omitempty"`
+}
+
+func getConfirmation(message string, e *parsecli.Env) bool {
+	fmt.Fprintf(e.Out, message)
+	var confirm string
+	fmt.Fscanf(e.In, "%s\n", &confirm)
+	lower := strings.ToLower(confirm)
+	return lower != "" && strings.HasPrefix(lower, "y")
 }
 
 func (f functionHook) String() string {

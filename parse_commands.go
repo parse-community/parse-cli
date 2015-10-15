@@ -7,6 +7,7 @@ import (
 
 	"github.com/ParsePlatform/parse-cli/parsecli"
 	"github.com/ParsePlatform/parse-cli/parsecmd"
+	"github.com/ParsePlatform/parse-cli/webhooks"
 	"github.com/spf13/cobra"
 )
 
@@ -32,7 +33,7 @@ http://parse.com`,
 	c.AddCommand(parsecmd.NewDeployCmd(e))
 	c.AddCommand(parsecmd.NewDevelopCmd(e))
 	c.AddCommand(parsecmd.NewDownloadCmd(e))
-	c.AddCommand(NewFunctionHooksCmd(e))
+	c.AddCommand(webhooks.NewFunctionHooksCmd(e))
 	c.AddCommand(parsecmd.NewGenerateCmd(e))
 	c.AddCommand(parsecmd.NewJsSdkCmd(e))
 	c.AddCommand(NewListCmd(e))
@@ -42,7 +43,7 @@ http://parse.com`,
 	c.AddCommand(parsecmd.NewReleasesCmd(e))
 	c.AddCommand(parsecmd.NewRollbackCmd(e))
 	c.AddCommand(parsecmd.NewSymbolsCmd(e))
-	c.AddCommand(NewTriggerHooksCmd(e))
+	c.AddCommand(webhooks.NewTriggerHooksCmd(e))
 	c.AddCommand(NewUpdateCmd(e))
 	c.AddCommand(NewVersionCmd(e))
 
