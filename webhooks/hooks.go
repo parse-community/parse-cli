@@ -1,7 +1,7 @@
 package webhooks
 
 import (
-	"bufio"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -20,11 +20,16 @@ var (
 		`
 invalid format.
 valid formats should look like:
-[put|post],functionName,https_url
-delete,functionName
+{"hooks": [OPERATION]}
 
-[put|post],className:triggerName,https_url
-delete,className:triggerName
+OPERATION ->
+{"op": "put", "function": {"functionName": "name", "url": "https_url"}}
+{"op": "post", "function": {"functionName": "name", "url": "https_url"}}
+{"op": "delete", "function": {"functionName": "name"}}
+
+{"op": "put", "trigger": {"className": "cname", "triggerName": "tname", "url":"https_url"}}
+{"op": "post", "trigger": {"className": "cname", "triggerName": "tname", "url":"https_url"}}
+{"op": "delete", "trigger": {"className": "cname", "triggerName": "tname",}}
 `)
 
 	errPostToPut = errors.New(
@@ -41,9 +46,9 @@ delete,className:triggerName
 )
 
 type hookOperation struct {
-	method   string
-	function *functionHook
-	trigger  *triggerHook
+	Method   string        `json:"op,omitempty"`
+	Function *functionHook `json:"function,omitempty"`
+	Trigger  *triggerHook  `json:"trigger,omitempty"`
 }
 
 func validateURL(urlStr string) error {
@@ -98,162 +103,61 @@ func (h *Hooks) checkTriggerName(s string) error {
 	)
 }
 
-func (h *Hooks) postOrPutHook(
-	e *parsecli.Env,
-	hooksOps []*hookOperation,
-	fields ...string,
-) (bool, []*hookOperation, error) {
-	restOp := strings.ToUpper(fields[0])
-	if restOp != "POST" && restOp != "PUT" {
-		return false, nil, stackerr.Wrap(errInvalidFormat)
-	}
-
-	switch len(fields) {
-	case 3:
-		hooksOps = append(hooksOps, &hookOperation{
-			method:   restOp,
-			function: &functionHook{FunctionName: fields[1], URL: fields[2]},
-		})
-		return true, hooksOps, nil
-
-	case 4:
-		if err := h.checkTriggerName(fields[2]); err != nil {
-			return false, nil, err
-		}
-		hooksOps = append(hooksOps, &hookOperation{
-			method:  restOp,
-			trigger: &triggerHook{ClassName: fields[1], TriggerName: fields[2], URL: fields[3]},
-		})
-		return true, hooksOps, nil
-	}
-	return false, nil, stackerr.Wrap(errInvalidFormat)
-
-}
-
-func (h *Hooks) deleteHook(
-	e *parsecli.Env,
-	hooksOps []*hookOperation,
-	fields ...string,
-) (bool, []*hookOperation, error) {
-	restOp := strings.ToUpper(fields[0])
-	if restOp != "DELETE" {
-		return false, nil, stackerr.Wrap(errInvalidFormat)
-	}
-
-	switch len(fields) {
-	case 2:
-		hooksOps = append(hooksOps, &hookOperation{
-			method:   "DELETE",
-			function: &functionHook{FunctionName: fields[1]},
-		})
-		return true, hooksOps, nil
-	case 3:
-		if err := h.checkTriggerName(fields[2]); err != nil {
-			return false, nil, err
-		}
-		hooksOps = append(hooksOps, &hookOperation{
-			method:  "DELETE",
-			trigger: &triggerHook{ClassName: fields[1], TriggerName: fields[2]},
-		})
-		return true, hooksOps, nil
-	}
-
-	return false, nil, stackerr.Wrap(errInvalidFormat)
-}
-
 func (h *Hooks) appendHookOperation(
 	e *parsecli.Env,
-	fields []string,
-	hooks []*hookOperation,
+	hookOp *hookOperation,
+	hooksOps []*hookOperation,
 ) (bool, []*hookOperation, error) {
-	if len(fields) == 0 {
-		return false, hooks, nil
+	if hookOp == nil || (hookOp.Function == nil && hookOp.Trigger == nil) ||
+		(hookOp.Function != nil && hookOp.Trigger != nil) {
+		return false, hooksOps, nil
 	}
 
-	switch strings.ToLower(fields[0]) {
-	case "post", "put":
-		return h.postOrPutHook(e, hooks, fields...)
-
-	case "delete":
-		return h.deleteHook(e, hooks, fields...)
-	}
-	return false, nil, stackerr.Wrap(errInvalidFormat)
-}
-
-func (h *Hooks) processHooksOperation(e *parsecli.Env, op string) ([]string, error) {
-	op = strings.TrimSpace(op)
-	if op == "" {
-		return nil, nil
+	method := strings.ToUpper(hookOp.Method)
+	if method != "POST" && method != "PUT" && method != "DELETE" {
+		return false, nil, stackerr.Wrap(errInvalidFormat)
 	}
 
-	fields := strings.SplitN(op, ",", 3)
-	switch restOp := strings.ToLower(fields[0]); restOp {
-	case "post", "put":
-		if len(fields) < 3 {
-			return nil, stackerr.Wrap(errInvalidFormat)
+	hookOp.Method = method
+	if hookOp.Trigger != nil {
+		if err := h.checkTriggerName(hookOp.Trigger.TriggerName); err != nil {
+			return false, nil, err
 		}
-	case "delete":
-		if len(fields) != 2 {
-			return nil, stackerr.Wrap(errInvalidFormat)
-		}
-		subFields := strings.SplitN(fields[1], ":", 2)
-		if len(subFields) == 2 {
-			fields = append(fields, subFields[1])
-			fields[1] = subFields[0]
-		}
-		return fields, nil
-	default:
-		return nil, stackerr.Wrap(errInvalidFormat)
 	}
 
-	if h.baseWebhookURL != nil {
-		u, err := h.baseWebhookURL.Parse(fields[2])
-		if err != nil {
-			return nil, stackerr.Wrap(err)
-		}
-		fields[2] = u.String()
-	}
-
-	switch subFields := strings.SplitN(fields[1], ":", 2); len(subFields) {
-	case 1:
-		return fields, nil
-	case 2:
-		fields = append(fields, fields[2])
-		fields[3] = fields[2]
-		fields[2] = subFields[1]
-		fields[1] = subFields[0]
-		return fields, nil
-	}
-	return nil, stackerr.Wrap(errInvalidFormat)
+	hooksOps = append(hooksOps, hookOp)
+	return true, hooksOps, nil
 }
 
 func (h *Hooks) createHooksOperations(
 	e *parsecli.Env,
 	reader io.Reader,
 ) ([]*hookOperation, error) {
-	scanner := bufio.NewScanner(reader)
+	var input struct {
+		HooksOps []*hookOperation `json:"hooks,omitempty"`
+	}
+	err := json.NewDecoder(ioutil.NopCloser(reader)).Decode(&input)
+	if err != nil {
+		return nil, stackerr.Wrap(err)
+	}
+
 	var (
 		hooksOps []*hookOperation
 		added    bool
 	)
-	lineNum := 0
-	for scanner.Scan() {
-		lineNum++
-		fields, err := h.processHooksOperation(e, scanner.Text())
-		if err != nil {
-			return nil, err
-		}
-		added, hooksOps, err = h.appendHookOperation(e, fields, hooksOps)
+	for _, hookOp := range input.HooksOps {
+		added, hooksOps, err = h.appendHookOperation(e, hookOp, hooksOps)
 		if err != nil {
 			return nil, err
 		}
 		if !added {
-			fmt.Fprintf(e.Out, "Ignoring line: %d\n", lineNum)
+			op, err := json.MarshalIndent(hookOp, "", " ")
+			if err == nil {
+				fmt.Fprintf(e.Out, "Ignoring hook operation: \n%s\n", op)
+			}
 		}
 	}
-	if err := scanner.Err(); err != nil {
-		return nil, stackerr.Wrap(err)
-	}
+
 	return hooksOps, nil
 }
 
@@ -305,20 +209,20 @@ func (h *Hooks) functionHookExists(e *parsecli.Env, name string) (bool, error) {
 }
 
 func (h *Hooks) deployFunctionHook(e *parsecli.Env, op *hookOperation) error {
-	if op.function == nil {
+	if op.Function == nil {
 		return stackerr.New("cannot deploy nil function hook")
 	}
-	exists, err := h.functionHookExists(e, op.function.FunctionName)
+	exists, err := h.functionHookExists(e, op.Function.FunctionName)
 	if err != nil {
 		return err
 	}
 
-	restOp, suppressed, err := h.checkStrictMode(op.method, exists)
+	restOp, suppressed, err := h.checkStrictMode(op.Method, exists)
 	if err != nil {
 		return err
 	}
 
-	function := &functionHooksCmd{Function: op.function}
+	function := &functionHooksCmd{Function: op.Function}
 	switch restOp {
 	case "POST":
 		return function.functionHooksCreate(e, nil)
@@ -357,20 +261,20 @@ func (h *Hooks) triggerHookExists(e *parsecli.Env, className, triggerName string
 }
 
 func (h *Hooks) deployTriggerHook(e *parsecli.Env, op *hookOperation) error {
-	if op.trigger == nil {
+	if op.Trigger == nil {
 		return stackerr.New("cannot deploy nil trigger hook")
 	}
 
-	exists, err := h.triggerHookExists(e, op.trigger.ClassName, op.trigger.TriggerName)
+	exists, err := h.triggerHookExists(e, op.Trigger.ClassName, op.Trigger.TriggerName)
 	if err != nil {
 		return err
 	}
-	restOp, suppressed, err := h.checkStrictMode(op.method, exists)
+	restOp, suppressed, err := h.checkStrictMode(op.Method, exists)
 	if err != nil {
 		return err
 	}
 
-	trigger := &triggerHooksCmd{Trigger: op.trigger, All: false}
+	trigger := &triggerHooksCmd{Trigger: op.Trigger, All: false}
 	switch restOp {
 	case "POST":
 		return trigger.triggerHooksCreate(e, nil)
@@ -388,13 +292,13 @@ func (h *Hooks) deployTriggerHook(e *parsecli.Env, op *hookOperation) error {
 
 func (h *Hooks) deployWebhooksConfig(e *parsecli.Env, hooksOps []*hookOperation) error {
 	for _, op := range hooksOps {
-		if op.function == nil && op.trigger == nil {
+		if op.Function == nil && op.Trigger == nil {
 			return stackerr.New("hook operation is neither a function, not a trigger.")
 		}
-		if op.function != nil && op.trigger != nil {
+		if op.Function != nil && op.Trigger != nil {
 			return stackerr.New("a hook cannot be both a function and a trigger.")
 		}
-		if op.function != nil {
+		if op.Function != nil {
 			if err := h.deployFunctionHook(e, op); err != nil {
 				return err
 			}
@@ -437,7 +341,7 @@ func (h *Hooks) HooksCmd(e *parsecli.Env, ctx *parsecli.Context, args []string) 
 		if err != nil {
 			return stackerr.Wrap(err)
 		}
-		reader = ioutil.NopCloser(file)
+		reader = file
 	} else {
 		fmt.Fprintln(e.Out, "Since a webhooks config file was not provided reading from stdin.")
 	}

@@ -2,7 +2,6 @@ package webhooks
 
 import (
 	"io/ioutil"
-	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -30,182 +29,6 @@ func TestCheckTriggerName(t *testing.T) {
 	ensure.Err(t, c.checkTriggerName("invalid"), regexp.MustCompile("list of valid trigger names"))
 }
 
-func TestPostOrPutHook(t *testing.T) {
-	t.Parallel()
-	h := parsecli.NewHarness(t)
-	defer h.Stop()
-
-	c := &Hooks{}
-
-	_, _, err := c.postOrPutHook(h.Env, nil, "other")
-	ensure.Err(t, err, regexp.MustCompile("invalid format"))
-
-	_, _, err = c.postOrPutHook(h.Env, nil, "post", "1")
-	ensure.Err(t, err, regexp.MustCompile("invalid format"))
-
-	_, _, err = c.postOrPutHook(h.Env, nil, "put", "1", "2", "3", "4")
-	ensure.Err(t, err, regexp.MustCompile("invalid format"))
-
-	var hooksOps []*hookOperation
-	_, ops, err := c.postOrPutHook(h.Env, hooksOps,
-		"post", "call", "https://api.twilio.com/call")
-	ensure.Nil(t, err)
-	ensure.DeepEqual(t, ops[len(ops)-1].method, "POST")
-	ensure.DeepEqual(
-		t,
-		*ops[len(ops)-1].function,
-		functionHook{
-			FunctionName: "call",
-			URL:          "https://api.twilio.com/call",
-		},
-	)
-
-	_, ops, err = c.postOrPutHook(h.Env, hooksOps,
-		"put", "call", "https://api.twilio.com/call_1")
-	ensure.Nil(t, err)
-	ensure.DeepEqual(t, ops[len(ops)-1].method, "PUT")
-	ensure.DeepEqual(
-		t,
-		*ops[len(ops)-1].function,
-		functionHook{
-			FunctionName: "call",
-			URL:          "https://api.twilio.com/call_1",
-		},
-	)
-
-	_, ops, err = c.postOrPutHook(h.Env, hooksOps, "post",
-		"_User", "beforeSave", "https://api.twilio.com/message")
-	ensure.Nil(t, err)
-	ensure.DeepEqual(t, ops[len(ops)-1].method, "POST")
-	ensure.DeepEqual(
-		t,
-		*ops[len(ops)-1].trigger,
-		triggerHook{
-			ClassName:   "_User",
-			TriggerName: "beforeSave",
-			URL:         "https://api.twilio.com/message",
-		},
-	)
-
-	_, ops, err = c.postOrPutHook(h.Env, hooksOps, "put",
-		"_User", "beforeSave", "https://api.twilio.com/message_1")
-	ensure.Nil(t, err)
-	ensure.DeepEqual(t, ops[len(ops)-1].method, "PUT")
-	ensure.DeepEqual(
-		t,
-		*ops[len(ops)-1].trigger,
-		triggerHook{
-			ClassName:   "_User",
-			TriggerName: "beforeSave",
-			URL:         "https://api.twilio.com/message_1",
-		},
-	)
-
-	_, ops, err = c.postOrPutHook(h.Env, hooksOps, "post",
-		"_User", "invalid", "https://other")
-	ensure.Err(t, err, regexp.MustCompile("invalid trigger"))
-}
-
-func TestDeleteHook(t *testing.T) {
-	t.Parallel()
-	h := parsecli.NewHarness(t)
-	defer h.Stop()
-
-	c := &Hooks{}
-	_, _, err := c.deleteHook(h.Env, nil, "delete")
-	ensure.Err(t, err, regexp.MustCompile("invalid format"))
-
-	_, _, err = c.deleteHook(h.Env, nil, "invalid", "1")
-	ensure.Err(t, err, regexp.MustCompile("invalid format"))
-
-	_, _, err = c.deleteHook(h.Env, nil, "delete", "1", "2")
-	ensure.Err(t, err, regexp.MustCompile("invalid trigger name"))
-
-	var hooksOps []*hookOperation
-	_, ops, err := c.deleteHook(h.Env, hooksOps, "delete", "call")
-	ensure.Nil(t, err)
-	ensure.DeepEqual(t, ops[len(ops)-1].method, "DELETE")
-	ensure.DeepEqual(
-		t,
-		*ops[len(ops)-1].function,
-		functionHook{FunctionName: "call"},
-	)
-
-	_, ops, err = c.deleteHook(h.Env, hooksOps, "delete", "_User", "beforeSave")
-	ensure.Nil(t, err)
-	ensure.DeepEqual(t, ops[len(ops)-1].method, "DELETE")
-	ensure.DeepEqual(
-		t,
-		*ops[len(ops)-1].trigger,
-		triggerHook{ClassName: "_User", TriggerName: "beforeSave"},
-	)
-}
-
-func TestProcessHookOperation(t *testing.T) {
-	t.Parallel()
-
-	h := parsecli.NewHarness(t)
-	defer h.Stop()
-
-	c := &Hooks{}
-
-	ops, err := c.processHooksOperation(h.Env, "\n\t ")
-	ensure.Nil(t, err)
-	ensure.DeepEqual(t, len(ops), 0)
-
-	_, err = c.processHooksOperation(h.Env, "invalid")
-	ensure.Err(t, err, regexp.MustCompile("invalid format"))
-
-	_, err = c.processHooksOperation(h.Env, "delete,call,caller")
-	ensure.Err(t, err, regexp.MustCompile("invalid format"))
-
-	ops, err = c.processHooksOperation(h.Env, "delete,call")
-	ensure.Nil(t, err)
-	ensure.DeepEqual(t, ops, []string{"delete", "call"})
-
-	ops, err = c.processHooksOperation(h.Env, "delete,_User:beforeSave")
-	ensure.Nil(t, err)
-	ensure.DeepEqual(t, ops, []string{"delete", "_User", "beforeSave"})
-
-	ops, err = c.processHooksOperation(h.Env, "post,call,https://twilio.com/call")
-	ensure.Nil(t, err)
-	ensure.DeepEqual(t, ops, []string{"post", "call", "https://twilio.com/call"})
-
-	ops, err = c.processHooksOperation(h.Env, "put,call,https://twilio.com/call_1,call_2")
-	ensure.Nil(t, err)
-	ensure.DeepEqual(t, ops, []string{"put", "call", "https://twilio.com/call_1,call_2"})
-
-	ops, err = c.processHooksOperation(h.Env, "put,call,https://twilio.com/call_1,call_2,call_3")
-	ensure.Nil(t, err)
-	ensure.DeepEqual(t, ops, []string{"put", "call", "https://twilio.com/call_1,call_2,call_3"})
-
-	ops, err = c.processHooksOperation(h.Env,
-		"pUt,_User:afterDelete,https://twilio.com/message_1,message_2")
-	ensure.Nil(t, err)
-	ensure.DeepEqual(t, ops, []string{"pUt", "_User", "afterDelete",
-		"https://twilio.com/message_1,message_2"})
-
-	u, err := url.Parse("https://parse.com")
-	ensure.Nil(t, err)
-	c.baseWebhookURL = u
-
-	ops, err = c.processHooksOperation(h.Env, "post,call,https://parse.com/call")
-	ensure.Nil(t, err)
-	ensure.DeepEqual(t, ops, []string{"post", "call", "https://parse.com/call"})
-
-	ops, err = c.processHooksOperation(h.Env, "post,call,https://twilio.com/call")
-	ensure.Nil(t, err)
-	ensure.DeepEqual(t, ops, []string{"post", "call", "https://twilio.com/call"})
-
-	ops, err = c.processHooksOperation(h.Env, "put,call,/call_1,call_2,call_3")
-	ensure.Nil(t, err)
-	ensure.DeepEqual(t, ops, []string{"put", "call", "https://parse.com/call_1,call_2,call_3"})
-
-	ops, err = c.processHooksOperation(h.Env, "put,call,https://twilio.com/call_1,call_2,call_3")
-	ensure.Nil(t, err)
-	ensure.DeepEqual(t, ops, []string{"put", "call", "https://twilio.com/call_1,call_2,call_3"})
-}
-
 func TestAppendHookOperation(t *testing.T) {
 	t.Parallel()
 
@@ -219,58 +42,102 @@ func TestAppendHookOperation(t *testing.T) {
 	ensure.Nil(t, err)
 	ensure.DeepEqual(t, hooksOps, ops)
 
-	_, _, err = c.appendHookOperation(h.Env, []string{"invalid"}, nil)
-	ensure.Err(t, err, regexp.MustCompile("invalid format"))
+	_, ops, err = c.appendHookOperation(h.Env, &hookOperation{}, nil)
+	ensure.Nil(t, err)
+	ensure.DeepEqual(t, hooksOps, ops)
 
 	_, ops, err = c.appendHookOperation(h.Env,
-		[]string{"post", "call", "https://twilio.com/call"}, hooksOps)
+		&hookOperation{
+			Method: "post",
+			Function: &functionHook{
+				FunctionName: "call",
+				URL:          "https://twilio.com/call",
+			},
+		},
+		hooksOps,
+	)
 	ensure.Nil(t, err)
-	ensure.DeepEqual(t, ops[len(ops)-1].method, "POST")
+	ensure.DeepEqual(t, ops[len(ops)-1].Method, "POST")
 	ensure.DeepEqual(
 		t,
-		*ops[len(ops)-1].function,
+		*ops[len(ops)-1].Function,
 		functionHook{FunctionName: "call", URL: "https://twilio.com/call"},
 	)
 
 	_, ops, err = c.appendHookOperation(h.Env,
-		[]string{"put", "call", "https://twilio.com/call_1"}, hooksOps)
+		&hookOperation{
+			Method: "put",
+			Function: &functionHook{
+				FunctionName: "call",
+				URL:          "https://twilio.com/call_1",
+			},
+		},
+		hooksOps,
+	)
 	ensure.Nil(t, err)
-	ensure.DeepEqual(t, ops[len(ops)-1].method, "PUT")
+	ensure.DeepEqual(t, ops[len(ops)-1].Method, "PUT")
 	ensure.DeepEqual(
 		t,
-		*ops[len(ops)-1].function,
+		*ops[len(ops)-1].Function,
 		functionHook{FunctionName: "call", URL: "https://twilio.com/call_1"},
 	)
 
 	//random stuff
 	_, ops, err = c.appendHookOperation(h.Env,
-		[]string{"posT", "_User", "afterDelete", "https://twilio.com/message"}, hooksOps)
+		&hookOperation{
+			Method: "posT",
+			Trigger: &triggerHook{
+				ClassName:   "_User",
+				TriggerName: "afterDelete",
+				URL:         "https://twilio.com/message",
+			},
+		},
+		hooksOps,
+	)
 	ensure.Nil(t, err)
-	ensure.DeepEqual(t, ops[len(ops)-1].method, "POST")
+	ensure.DeepEqual(t, ops[len(ops)-1].Method, "POST")
 	ensure.DeepEqual(
 		t,
-		*ops[len(ops)-1].trigger,
+		*ops[len(ops)-1].Trigger,
 		triggerHook{ClassName: "_User", TriggerName: "afterDelete", URL: "https://twilio.com/message"},
 	)
 
 	_, ops, err = c.appendHookOperation(h.Env,
-		[]string{"pUt", "_User", "afterDelete", "https://twilio.com/message_1"}, hooksOps)
+		&hookOperation{
+			Method: "pUt",
+			Trigger: &triggerHook{
+				ClassName:   "_User",
+				TriggerName: "afterDelete",
+				URL:         "https://twilio.com/message_1",
+			},
+		},
+		hooksOps,
+	)
 	ensure.Nil(t, err)
-	ensure.DeepEqual(t, ops[len(ops)-1].method, "PUT")
+	ensure.DeepEqual(t, ops[len(ops)-1].Method, "PUT")
 	ensure.DeepEqual(
 		t,
-		*ops[len(ops)-1].trigger,
+		*ops[len(ops)-1].Trigger,
 		triggerHook{ClassName: "_User", TriggerName: "afterDelete", URL: "https://twilio.com/message_1"},
 	)
 
 	// random stuff
 	_, ops, err = c.appendHookOperation(h.Env,
-		[]string{"pUt", "_User", "afterDelete", "https://twilio.com/message_1,message_2"}, hooksOps)
+		&hookOperation{
+			Method: "pUt",
+			Trigger: &triggerHook{
+				ClassName:   "_User",
+				TriggerName: "afterDelete",
+				URL:         "https://twilio.com/message_1,message_2",
+			},
+		},
+		hooksOps,
+	)
 	ensure.Nil(t, err)
-	ensure.DeepEqual(t, ops[len(ops)-1].method, "PUT")
+	ensure.DeepEqual(t, ops[len(ops)-1].Method, "PUT")
 	ensure.DeepEqual(
 		t,
-		*ops[len(ops)-1].trigger,
+		*ops[len(ops)-1].Trigger,
 		triggerHook{ClassName: "_User", TriggerName: "afterDelete", URL: "https://twilio.com/message_1,message_2"},
 	)
 }
@@ -322,15 +189,15 @@ func TestCreateHookOperations(t *testing.T) {
 	h.MakeEmptyRoot()
 	defer h.Stop()
 
-	hooksConfigFile := filepath.Join(h.Env.Root, "webhooks.csv")
+	c := &Hooks{}
+
+	hooksConfigFile := filepath.Join(h.Env.Root, "webhooks.json")
 	err := ioutil.WriteFile(
 		hooksConfigFile,
-		[]byte{},
+		[]byte("{}"),
 		0666,
 	)
 	ensure.Nil(t, err)
-
-	c := &Hooks{}
 
 	f, err := os.Open(hooksConfigFile)
 	ensure.Nil(t, err)
@@ -341,7 +208,30 @@ func TestCreateHookOperations(t *testing.T) {
 
 	err = ioutil.WriteFile(
 		hooksConfigFile,
-		[]byte("\n"),
+		[]byte("{1}"),
+		0666,
+	)
+	ensure.Nil(t, err)
+
+	f, err = os.Open(hooksConfigFile)
+	ensure.Nil(t, err)
+	ops, err = c.createHooksOperations(h.Env, f)
+	ensure.Err(t, err, regexp.MustCompile("invalid"))
+	ensure.DeepEqual(t, len(ops), 0)
+	ensure.Nil(t, f.Close())
+
+	err = ioutil.WriteFile(
+		hooksConfigFile,
+		[]byte(`{
+			"hooks": [
+			{
+				"op": "put",
+				"function": {
+					"functionName": "message",
+					"url": "https://api.twilio.com/message"
+				}
+			}
+		]}`),
 		0666,
 	)
 
@@ -349,10 +239,67 @@ func TestCreateHookOperations(t *testing.T) {
 	ensure.Nil(t, err)
 	ops, err = c.createHooksOperations(h.Env, f)
 	ensure.Nil(t, err)
-	ensure.DeepEqual(t, len(ops), 0)
-	ensure.DeepEqual(t, h.Out.String(), "Ignoring line: 1\n")
+	ensure.DeepEqual(t, len(ops), 1)
+	ensure.DeepEqual(t,
+		*ops[0].Function,
+		functionHook{FunctionName: "message", URL: "https://api.twilio.com/message"},
+	)
+	ensure.DeepEqual(t, ops[0].Method, "PUT")
 	ensure.Nil(t, f.Close())
 	h.Out.Reset()
+
+	err = ioutil.WriteFile(
+		hooksConfigFile,
+		[]byte(`{
+			"hooks": [
+			{
+				"op": "post",
+				"function": {
+					"functionName": "message",
+					"url": "https://api.twilio.com/message"
+				}
+			},
+			{
+				"op": "put",
+				"function": {
+					"functionName": "message",
+					"url": "https://api.twilio.com/message_1"
+				}
+			},
+			{
+				"op": "post"
+			}
+		]}`),
+		0666,
+	)
+
+	f, err = os.Open(hooksConfigFile)
+	ensure.Nil(t, err)
+	ops, err = c.createHooksOperations(h.Env, f)
+	ensure.Nil(t, err)
+	ensure.DeepEqual(t, len(ops), 2)
+	ensure.DeepEqual(t,
+		*ops[0].Function,
+		functionHook{FunctionName: "message", URL: "https://api.twilio.com/message"},
+	)
+	ensure.DeepEqual(t, ops[0].Method, "POST")
+
+	ensure.DeepEqual(t,
+		*ops[1].Function,
+		functionHook{FunctionName: "message", URL: "https://api.twilio.com/message_1"},
+	)
+	ensure.DeepEqual(t,
+		h.Out.String(),
+		`Ignoring hook operation: 
+{
+ "op": "post"
+}
+`,
+	)
+	ensure.DeepEqual(t, ops[1].Method, "PUT")
+	ensure.Nil(t, f.Close())
+	h.Out.Reset()
+
 }
 
 func TestFunctionHookExists(t *testing.T) {
@@ -376,8 +323,8 @@ func TestDeployFunctionHooks(t *testing.T) {
 	err := c.deployFunctionHook(
 		h.Env,
 		&hookOperation{
-			method: "post",
-			function: &functionHook{
+			Method: "post",
+			Function: &functionHook{
 				FunctionName: "foo",
 				URL:          "https://api.example.com/foo",
 			},
@@ -408,8 +355,8 @@ func TestDeployTriggerHooks(t *testing.T) {
 	err := c.deployTriggerHook(
 		h.Env,
 		&hookOperation{
-			method: "post",
-			trigger: &triggerHook{
+			Method: "post",
+			Trigger: &triggerHook{
 				ClassName:   "foo",
 				TriggerName: "beforeSave",
 				URL:         "https://api.example.com/foo",
