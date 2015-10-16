@@ -247,7 +247,7 @@ func (h *Hooks) triggerHookExists(e *parsecli.Env, className, triggerName string
 	}
 	_, err = e.ParseAPIClient.Get(triggersURL, &results)
 	if err != nil {
-		if strings.Contains(err.Error(), "is defined") {
+		if strings.Contains(err.Error(), "defined for") {
 			return false, nil
 		}
 		return false, stackerr.Wrap(err)
