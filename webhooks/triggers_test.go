@@ -49,7 +49,7 @@ func newTriggersHarness(t testing.TB) *parsecli.Harness {
 				}
 			} else {
 				return &http.Response{StatusCode: http.StatusBadRequest},
-					errors.New("no such trigger is defined")
+					errors.New("no such trigger is defined for class")
 			}
 		case "POST":
 			ensure.DeepEqual(t, r.URL.Path, defaultTriggersURL)

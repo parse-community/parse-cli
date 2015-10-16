@@ -115,6 +115,10 @@ func (h *Hooks) appendHookOperation(
 
 	method := strings.ToUpper(hookOp.Method)
 	if method != "POST" && method != "PUT" && method != "DELETE" {
+		op, err := json.MarshalIndent(hookOp, "", " ")
+		if err == nil {
+			fmt.Fprintf(e.Out, "Please fix the incorrect operation in:\n%s\n", op)
+		}
 		return false, nil, stackerr.Wrap(errInvalidFormat)
 	}
 
