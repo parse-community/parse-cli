@@ -127,8 +127,20 @@ func (h *Hooks) appendHookOperation(
 		if err := h.checkTriggerName(hookOp.Trigger.TriggerName); err != nil {
 			return false, nil, err
 		}
+		if hookOp.Trigger.URL != "" && h.baseWebhookURL != nil {
+			u, err := url.Parse(hookOp.Trigger.URL)
+			if err == nil {
+				hookOp.Trigger.URL = h.baseWebhookURL.ResolveReference(u).String()
+			}
+		}
+	} else {
+		if hookOp.Function.URL != "" && h.baseWebhookURL != nil {
+			u, err := url.Parse(hookOp.Function.URL)
+			if err == nil {
+				hookOp.Function.URL = h.baseWebhookURL.ResolveReference(u).String()
+			}
+		}
 	}
-
 	hooksOps = append(hooksOps, hookOp)
 	return true, hooksOps, nil
 }
