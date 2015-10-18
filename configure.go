@@ -222,7 +222,7 @@ func NewConfigureCmd(e *parsecli.Env) *cobra.Command {
 		Use:   "hooks [filename]",
 		Short: "Configure webhooks according to given config file",
 		Long: `Configure webhooks for the app based on the given configuration json file.
-For more details read: https://parse.com/docs/js/guide#command-line-webhooks
+For more details read: https://parse.com/docs/cloudcode/guide#command-line-webhooks
 `,
 		Run:     parsecli.RunWithArgsClient(e, c.hooks.HooksCmd),
 		Aliases: []string{"webhooks"},
