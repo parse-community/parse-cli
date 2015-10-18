@@ -131,7 +131,7 @@ func NewDevelopCmd(e *parsecli.Env) *cobra.Command {
 			`This will also monitor the parse INFO log for any new log messages and write ` +
 			`out updates to the terminal. This requires an app to be provided, to ` +
 			`avoid running develop on production apps accidently.`,
-		Run: parsecli.RunWithAppClient(e, d.run),
+		Run: parsecli.RunWithClientConfirm(e, d.run),
 	}
 	cmd.Flags().DurationVarP(&d.deployInterval, "interval", "i", d.deployInterval, "Number of seconds between deploys.")
 	cmd.Flags().BoolVarP(&d.mustFetch, "fetch", "f", d.mustFetch, "Always fetch previous deployment info from server")

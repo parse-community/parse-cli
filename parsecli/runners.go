@@ -2,6 +2,7 @@ package parsecli
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/spf13/cobra"
 )
@@ -62,29 +63,49 @@ func RunWithClient(e *Env, f func(*Env, *Context) error) cobraRun {
 	}
 }
 
-// RunWithAppClient wraps a run function that should get an app
-func RunWithAppClient(e *Env, f func(*Env, *Context) error) cobraRun {
+// RunWithClientConfirm wraps a run function that takes an app name
+// or asks for confirmation to use the default app name instead
+func RunWithClientConfirm(e *Env, f func(*Env, *Context) error) cobraRun {
 	return func(cmd *cobra.Command, args []string) {
-		if len(args) == 0 {
-			fmt.Fprintf(e.Err, "please provide an app name\n\n")
-			cmd.Help()
-			e.Exit(1)
-		}
+		app := DefaultKey
 		if len(args) > 1 {
 			fmt.Fprintf(
 				e.Err,
-				"unexpected arguments, only an app name is expected:%+v\n\n",
+				"unexpected arguments, only an optional app name is expected:%+v\n\n",
 				args,
 			)
 			cmd.Help()
 			e.Exit(1)
 		}
-		app := args[0]
+		if len(args) == 1 {
+			app = args[0]
+		}
 		cl, err := newContext(e, app)
 		if err != nil {
 			fmt.Fprintln(e.Err, ErrorString(e, err))
 			e.Exit(1)
 		}
+
+		if app == DefaultKey {
+			fmt.Fprintf(
+				e.Out,
+				`Did not provide app name as an argument to the command.
+Please enter an app name to execute this command on
+or press ENTER to use the default app %q: `,
+				cl.Config.GetDefaultApp(),
+			)
+			var appName string
+			fmt.Fscanf(e.In, "%s\n", &appName)
+			appName = strings.TrimSpace(appName)
+			if appName != "" {
+				cl, err = newContext(e, appName)
+				if err != nil {
+					fmt.Fprintln(e.Err, ErrorString(e, err))
+					e.Exit(1)
+				}
+			}
+		}
+
 		if err := f(e, cl); err != nil {
 			fmt.Fprintln(e.Err, ErrorString(e, err))
 			e.Exit(1)
