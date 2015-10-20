@@ -219,7 +219,7 @@ func (l *Login) AuthToken(e *Env, token string) (string, error) {
 		Email string `json:"email"`
 	}{}
 	if response, err := e.ParseAPIClient.Do(req, nil, res); err != nil {
-		if response.StatusCode == http.StatusUnauthorized {
+		if response != nil && response.StatusCode == http.StatusUnauthorized {
 			return "", stackerr.Newf(tokenErrMsgf, Last4(token), keysURL)
 		}
 		return "", stackerr.Wrap(err)
