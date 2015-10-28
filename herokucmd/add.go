@@ -43,9 +43,15 @@ func selectHerokuApp(apps nameIDs, e *parsecli.Env) (*nameID, error) {
 
 func getRandomAppName(app *parsecli.App) string {
 	rand.Seed(time.Now().Unix())
+
+	namePrefix := strings.Join(strings.Fields(strings.ToLower(app.Name)), "")
+	if namePrefix == "" {
+		namePrefix = "parsoku"
+	}
+
 	construct := fmt.Sprintf(
 		"%s-%s-%d",
-		strings.ToLower(app.Name),
+		namePrefix,
 		strings.ToLower(app.ApplicationID[:6]),
 		rand.Intn(10000),
 	)
