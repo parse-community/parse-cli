@@ -141,7 +141,7 @@ func checkIfSupported(e *parsecli.Env, version string, mode string, args ...stri
 	select {
 	case res := <-timeout:
 		return res.warning, stackerr.Wrap(res.err)
-	case <-time.After(time.Duration(500) * time.Millisecond):
+	case <-time.After(time.Second):
 		return "", nil
 	}
 	return "", nil
