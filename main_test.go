@@ -37,7 +37,7 @@ func TestIsSupportedWarning(t *testing.T) {
 		}, nil
 	})
 	h.Env.ParseAPIClient = &parsecli.ParseAPIClient{APIClient: &parse.Client{Transport: ht}}
-	message, err := checkIfSupported(h.Env, "2.0.2")
+	message, err := checkIfSupported(h.Env, "2.0.2", "parse")
 	ensure.Nil(t, err)
 	ensure.DeepEqual(t, message, "please update")
 }
@@ -60,7 +60,7 @@ func TestIsSupportedError(t *testing.T) {
 		}, nil
 	})
 	h.Env.ParseAPIClient = &parsecli.ParseAPIClient{APIClient: &parse.Client{Transport: ht}}
-	_, err := checkIfSupported(h.Env, "2.0.2")
+	_, err := checkIfSupported(h.Env, "2.0.2", "parse")
 	ensure.Err(t, err, regexp.MustCompile("not supported"))
 }
 

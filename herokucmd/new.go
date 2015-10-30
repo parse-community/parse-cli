@@ -5,6 +5,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 
@@ -16,6 +17,17 @@ const (
 	nodeSampleURL  = "https://github.com/pavanka/parse-webhooks/releases/download/2.0.0/node-sample.zip"
 	nodeSampleBase = "node-sample"
 )
+
+func recordDecision(e *parsecli.Env, decision string) {
+	v := make(url.Values)
+	v.Set("version", parsecli.Version)
+	v.Set("decision", decision)
+	req := &http.Request{
+		Method: "GET",
+		URL:    &url.URL{Path: "supported", RawQuery: v.Encode()},
+	}
+	e.ParseAPIClient.Do(req, nil, nil)
+}
 
 func PromptCreateWebhooks(e *parsecli.Env) (string, error) {
 	selections := map[int]string{
@@ -40,8 +52,10 @@ Type 1 or 2 to make a selection: `,
 		fmt.Fprintln(e.Out)
 		switch projectType {
 		case 1:
+			recordDecision(e, "heroku")
 			return "heroku", nil
 		case 2:
+			recordDecision(e, "parse")
 			return "parse", nil
 		}
 		fmt.Fprintln(e.Err, msg)

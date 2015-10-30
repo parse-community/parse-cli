@@ -87,15 +87,18 @@ func main() {
 		rootCmd *cobra.Command
 		command []string
 	)
+	var mode string
 	switch e.Type {
 	case parsecli.LegacyParseFormat, parsecli.ParseFormat:
+		mode = "parse"
 		command, rootCmd = parseRootCmd(&e)
 	case parsecli.HerokuFormat:
+		mode = "heroku"
 		command, rootCmd = herokuRootCmd(&e)
 	}
 
 	if len(command) == 0 || command[0] != "update" {
-		message, err := checkIfSupported(&e, parsecli.Version, command...)
+		message, err := checkIfSupported(&e, parsecli.Version, mode, command...)
 		if err != nil {
 			fmt.Fprintln(e.Err, err)
 			os.Exit(1)
@@ -111,9 +114,10 @@ func main() {
 	}
 }
 
-func checkIfSupported(e *parsecli.Env, version string, args ...string) (string, error) {
+func checkIfSupported(e *parsecli.Env, version string, mode string, args ...string) (string, error) {
 	v := make(url.Values)
 	v.Set("version", version)
+	v.Set("mode", mode)
 	v.Set("other", strings.Join(args, " "))
 	req := &http.Request{
 		Method: "GET",
