@@ -123,21 +123,22 @@ so it does not conflict with any other Cloud Code in the current directory.
 
 	cloudCodeDirInfo, err := os.Stat(filepath.Join(e.Root, cloudCodeDir))
 	if err == nil {
-		if !cloudCodeDirInfo.IsDir() {
-			return "", stackerr.Newf(`Sorry, we are unable to create Cloud Code at %s.
-In the current directory a file named: %s already exists.
+		fileType := "file"
+		if cloudCodeDirInfo.IsDir() {
+			fileType = "directory"
+		}
+		return "", stackerr.Newf(`Sorry, we are unable to create Cloud Code at %s.
+In the current directory a %s named: %q already exists.
 Please run "parse new" again.
 %s
 Please choose a different name for your Cloud Code directory,
 so it does not conflict with any other Cloud Code in the current directory.
 `,
-				cloudCodeDir,
-				cloudCodeDir,
-				helpMsg,
-			)
-
-		}
-		return "", nil
+			cloudCodeDir,
+			fileType,
+			cloudCodeDir,
+			helpMsg,
+		)
 	}
 	if !os.IsNotExist(err) {
 		return "", stackerr.Wrap(err)
