@@ -80,8 +80,7 @@ func TestGetCloudCodeDir(t *testing.T) {
 	h.Out.Reset()
 	h.Env.In = ioutil.NopCloser(strings.NewReader("\n"))
 	name, err = n.getCloudCodeDir(h.Env, "myapp", false)
-	ensure.Nil(t, err)
-	ensure.StringContains(t, h.Out.String(), "folder where we can download the latest")
+	ensure.Err(t, err, regexp.MustCompile("a directory named: \"myapp\" already exists"))
 }
 
 func TestNewCmdDirs(t *testing.T) {
