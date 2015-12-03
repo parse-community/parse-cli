@@ -148,7 +148,7 @@ func (a *Apps) SelectApp(apps []*App, msg string, e *Env) (*App, error) {
 		fmt.Fprintf(e.Out, "%s%s", selectionString(appNames), msg)
 
 		var selected string
-		fmt.Fscanf(e.In, "%s", &selected)
+		fmt.Fscanf(e.In, "%s\n", &selected)
 		if pos, err = strconv.Atoi(strings.TrimSpace(selected)); err != nil {
 			pos = -1
 			break
