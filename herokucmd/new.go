@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	nodeSampleURL  = "https://github.com/pavanka/parse-webhooks/releases/download/2.0.0/node-sample.zip"
+	nodeSampleURL  = "https://github.com/pavanka/parse-webhooks/releases/download/3.0.0/node-sample.zip"
 	nodeSampleBase = "node-sample"
 )
 
