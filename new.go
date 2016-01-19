@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"runtime"
 
 	"github.com/ParsePlatform/parse-cli/herokucmd"
 	"github.com/ParsePlatform/parse-cli/parsecli"
@@ -26,21 +27,28 @@ type newCmd struct {
 
 func (n *newCmd) curlCommand(e *parsecli.Env, app *parsecli.App) string {
 	args := "{}"
+	quote := "'"
 	if e.Type == parsecli.HerokuFormat {
 		args = `{"a": "Adventurous ", "b": "Parser"}`
 	}
-
+	if runtime.GOOS == "windows" {
+		quote = "\""
+		args = strings.Replace(args, "\"", "\"\"\"", -1)
+	}
+  
 	return fmt.Sprintf(
 		`curl -X POST \
  -H "X-Parse-Application-Id: %s" \
  -H "X-Parse-REST-API-Key: %s" \
  -H "Content-Type: application/json" \
- -d '%s' \
+ -d %s%s%s \
  https://api.parse.com/1/functions/hello
 `,
 		app.ApplicationID,
 		app.RestKey,
+		quote,
 		args,
+		quote,
 	)
 }
 
