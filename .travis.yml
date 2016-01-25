@@ -4,6 +4,7 @@ go:
 script:
   - go test -v ./... 
 before_deploy:
+  - go get github.com/inconshreveable/mousetrap # temporary fix for travis build breaks for windows due to cobra dependency on mousetrap
   - go get github.com/mitchellh/gox
   - gox -osarch="darwin/amd64" -osarch="linux/arm" -osarch="linux/386" -osarch="windows/386" -build-toolchain
   - gox -osarch="darwin/amd64" -osarch="linux/arm" -osarch="linux/386" -osarch="windows/386" -output="parse_{{.OS}}_{{.Arch}}"
