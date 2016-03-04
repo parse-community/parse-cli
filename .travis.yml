@@ -5,10 +5,10 @@ script:
   - go test -v ./... 
 before_deploy:
   - go get github.com/inconshreveable/mousetrap # temporary fix for travis build breaks for windows due to cobra dependency on mousetrap
-  - GOOS=darwin GOARCH=amd64 go build -v github.com/ParsePlatform/parse-cli -o parse
-  - GOOS=windows GOARCH=386 go build -v github.com/ParsePlatform/parse-cli -o parse.exe
-  - GOOS=linux GOARCH=386 go build -v github.com/ParsePlatform/parse-cli -o parse_linux
-  - GOOS=linux GOARCH=arm go build -v github.com/ParsePlatform/parse-cli -o parse_linux_arm
+  - GOOS=darwin GOARCH=amd64 go build -o parse -v github.com/ParsePlatform/parse-cli 
+  - GOOS=windows GOARCH=386 go build -o parse.exe -v github.com/ParsePlatform/parse-cli
+  - GOOS=linux GOARCH=386 go build -o parse_linux -v github.com/ParsePlatform/parse-cli
+  - GOOS=linux GOARCH=arm go build -o parse_linux_arm -v github.com/ParsePlatform/parse-cli 
 deploy:
   provider: releases
   api_key:
