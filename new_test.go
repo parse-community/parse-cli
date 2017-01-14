@@ -137,6 +137,7 @@ func TestNewCmdContent(t *testing.T) {
 func TestCurlCommand(t *testing.T) {
 	t.Parallel()
 	h := parsecli.NewHarness(t)
+	h.Env.Server = "https://api.parse.com"
 	defer h.Stop()
 
 	n := &newCmd{}

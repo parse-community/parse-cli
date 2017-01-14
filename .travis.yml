@@ -20,6 +20,6 @@ deploy:
     - parse_linux_arm
   skip_cleanup: true
   on:
-    repo: ParsePlatform/parse-cli
+    repo: back4app/parse-cli
     tags: true
     condition: $TRAVIS_TAG =~ ^release_.*

@@ -18,7 +18,7 @@ const (
 	windowsDownload   = "parse.exe"
 	linuxDownload     = "parse_linux"
 	linuxArmDownload  = "parse_linux_arm"
-	downloadURLFormat = "https://github.com/ParsePlatform/parse-cli/releases/download/release_%s/%s"
+	downloadURLFormat = "https://github.com/back4app/parse-cli/releases/download/release_%s/%s"
 )
 
 type updateCmd struct{}
