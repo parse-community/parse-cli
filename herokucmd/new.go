@@ -32,7 +32,7 @@ func recordDecision(e *parsecli.Env, decision string) {
 func PromptCreateWebhooks(e *parsecli.Env) (string, error) {
 	selections := map[int]string{
 		1: "Heroku (https://www.heroku.com)",
-		2: "Parse  (https://parse.com/docs/cloudcode/guide)",
+		2: "Back4App  (https://parse.com/docs/cloudcode/guide)",
 	}
 
 	msg := "Sorry! CLI supports only Parse Cloud Code and Heroku."
