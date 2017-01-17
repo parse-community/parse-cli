@@ -2,22 +2,22 @@ language: go
 go:
   - 1.5.3
 script:
-  - go test -v ./... 
+  - go test -v ./...
 before_deploy:
   - go get github.com/inconshreveable/mousetrap # temporary fix for travis build breaks for windows due to cobra dependency on mousetrap
-  - GOOS=darwin GOARCH=amd64 go build -o parse -v github.com/ParsePlatform/parse-cli 
-  - GOOS=windows GOARCH=386 go build -o parse.exe -v github.com/ParsePlatform/parse-cli
-  - GOOS=linux GOARCH=386 go build -o parse_linux -v github.com/ParsePlatform/parse-cli
-  - GOOS=linux GOARCH=arm go build -o parse_linux_arm -v github.com/ParsePlatform/parse-cli 
+  - GOOS=darwin GOARCH=amd64 go build -o back4app -v github.com/ParsePlatform/parse-cli
+  - GOOS=windows GOARCH=386 go build -o back4app.exe -v github.com/ParsePlatform/parse-cli
+  - GOOS=linux GOARCH=386 go build -o back4app_linux -v github.com/ParsePlatform/parse-cli
+  - GOOS=linux GOARCH=arm go build -o back4app_linux_arm -v github.com/ParsePlatform/parse-cli
 deploy:
   provider: releases
   api_key:
     secure: ZnquaugjmlJ6geWvXCVjZeN2Z1NZyOaNWbY1hY8LAZZR+QqlRUR+6+QZ85vHYnqHAqKHDoh8BcZUR+2hK9UV2Lqsq0aTzvuxxVIKFiF1Gc3eC6zK3FUPgk9eOnxPZM1REGM7/i977HckpNVirskdHK1esdkKOYIfLQaHW75+xZYNJ/RKUceVrrT99IlOLWH+52vd/xGY3osV65FWkF8QS8LsZrqDQlrGyeht/P5YxepkyvMxGhBs7O3j5Npldmvdce5AQttY4MXQkMXkIrbQ2u4auBtw94hn9POd2msO0pq9JF76Is3FsH4B0/3AUrWkxMHV5XAwK1ziXniVKqQeIzaPadV92r8ihySYOQABCfQgQrHaH03jG+zE4CqqxbQvVUCCoszTZRg0AFAbaYeTKngN8kaaEEiJrKsmEASHfc8cql2TYH9Tr+ZvF/dxyYiBDU/i+BjJ4Y5jpoyXrUFeeLKRSSN4WGYYaC0r4aCBNcVDQFo9sd0n1lUtznc6wtg671Qgrvq/aog7I4qJKYBeJ/OGm771IboPxLob3P5hBdMZwOFPbjFsOmMhyBvYwxBJz3SJfVW/+pCCQdfqbfHSB0ZawdeRBQdm3w24hvq5wdpk5nGTdbdCbxb/9LsVd1WuU4xE8PiTpXxn1WqiYEcVjFd2NtYkBtFliAvnEKax+Ew=
   file:
-    - parse
-    - parse.exe
-    - parse_linux
-    - parse_linux_arm
+    - back4app
+    - back4app.exe
+    - back4app_linux
+    - back4app_linux_arm
   skip_cleanup: true
   on:
     repo: back4app/parse-cli
