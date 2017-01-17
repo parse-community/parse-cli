@@ -197,7 +197,7 @@ func (a *Apps) ShowApps(e *Env, appName string) error {
 func (a *Apps) getAppName(e *Env) (string, error) {
 	var appName string
 	fmt.Fprint(e.Out, `Please choose a name for your Parse app.
-Note that this name will appear on the Parse website,
+Note that this name will appear on the Back4App website,
 but it does not have to be the same as your mobile app's public name.
 Name: `)
 	fmt.Fscanf(e.In, "%s\n", &appName)

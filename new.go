@@ -205,7 +205,7 @@ Please refrain from creating a Parse project inside another Parse project.
 	if nonInteractive {
 		cloudCodeDir = n.codeLocation
 	} else if n.configOnly {
-		cloudCodeDir = "" // ensures that "parse new --init" inits the current directory
+		cloudCodeDir = "" // ensures that "back4app new --init" inits the current directory
 	} else {
 		cloudCodeDir, err = n.getCloudCodeDir(e, name, isNew)
 		if err != nil {

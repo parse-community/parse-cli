@@ -36,7 +36,7 @@ type Login struct {
 var (
 	errAuth = errors.New(`Sorry, we do not have a user with this username and password.
 If you do not remember your password, please follow instructions at:
-  https://www.parse.com/login
+  http://back4app.com/password/forgot
 to reset your password`)
 
 	tokenErrMsgf = `Sorry, the account key: %q you provided is not valid.
@@ -258,7 +258,7 @@ To save time logging in, you should create an account key.
 
 			fmt.Fprintln(
 				e.Out,
-				`Type "parse configure accountkey" to create a new account key.
+				`Type "back4app configure accountkey" to create a new account key.
 Read more at: https://parse.com/docs/cloudcode/guide#command-line-account-keys`)
 			return "", stackerr.New("Account key not configured")
 		}
@@ -288,10 +288,10 @@ func (l *Login) AuthUser(e *Env, strict bool) error {
 	if !stackerr.HasUnderlying(err, stackerr.MatcherFunc(accountKeyNotConfigured)) {
 		fmt.Fprintln(
 			e.Out,
-			`Type "parse configure accountkey" to create a new account key.
+			`Type "back4app configure accountkey" to create a new account key.
 Read more at: https://parse.com/docs/cloudcode/guide#command-line-account-keys
 
-Please login to Parse using your email and password.`,
+Please login to Back4App using your email and password.`,
 		)
 	}
 
