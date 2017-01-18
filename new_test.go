@@ -149,7 +149,7 @@ func TestCurlCommand(t *testing.T) {
  -H "X-Parse-REST-API-Key: RestKey" \
  -H "Content-Type: application/json" \
  -d "{}" \
- https://api.parse.com/1/functions/hello
+ https://parseapi.back4app.com/functions/hello
 `)
 }
 

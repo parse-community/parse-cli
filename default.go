@@ -23,7 +23,7 @@ func (d *defaultCmd) run(e *parsecli.Env, args []string) error {
 	}
 
 	if config.GetNumApps() == 0 {
-		return stackerr.New("No apps are associated with this project. You can add some with parse add")
+		return stackerr.New("No apps are associated with this project. You can add some with b4a add")
 	}
 
 	defaultApp := config.GetDefaultApp()

@@ -37,12 +37,11 @@ func (n *newCmd) curlCommand(e *parsecli.Env, app *parsecli.App) string {
  -H "X-Parse-REST-API-Key: %s" \
  -H "Content-Type: application/json" \
  -d %s \
- %s/1/functions/hello
+ https://parseapi.back4app.com/functions/hello
 `,
 		app.ApplicationID,
 		app.RestKey,
 		strconv.Quote(args),
-		e.Server,
 	)
 }
 
@@ -60,7 +59,7 @@ you can test that it works, with the printed curl command.
 Next, you might want to deploy this code with:
 
 	cd %s
-	parse deploy
+	b4a deploy
 
 Once deployed you can test that it works by running:
 %s
@@ -112,7 +111,7 @@ and select the app you just created.`
 		return "", stackerr.Newf(
 			`Sorry, we are unable to create Cloud Code at %s.
 It seems that you already have Cloud Code at %s.
-Please run "parse new" again.
+Please run "b4a new" again.
 %s
 Please choose a different name for your Cloud Code directory,
 so it does not conflict with any other Cloud Code in the current directory.
@@ -131,7 +130,7 @@ so it does not conflict with any other Cloud Code in the current directory.
 		}
 		return "", stackerr.Newf(`Sorry, we are unable to create Cloud Code at %s.
 In the current directory a %s named: %q already exists.
-Please run "parse new" again.
+Please run "b4a new" again.
 %s
 Please choose a different name for your Cloud Code directory,
 so it does not conflict with any other Cloud Code in the current directory.
@@ -205,7 +204,7 @@ Please refrain from creating a Parse project inside another Parse project.
 	if nonInteractive {
 		cloudCodeDir = n.codeLocation
 	} else if n.configOnly {
-		cloudCodeDir = "" // ensures that "parse new --init" inits the current directory
+		cloudCodeDir = "" // ensures that "b4a new --init" inits the current directory
 	} else {
 		cloudCodeDir, err = n.getCloudCodeDir(e, name, isNew)
 		if err != nil {
