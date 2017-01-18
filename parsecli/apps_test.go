@@ -148,7 +148,7 @@ func TestCreateNewApp(t *testing.T) {
 	ensure.Nil(t, a.PrintApp(h.Env, app))
 	ensure.DeepEqual(t, h.Out.String(),
 		`Please choose a name for your Parse app.
-Note that this name will appear on the Back4app website,
+Note that this name will appear on the Back4App website,
 but it does not have to be the same as your mobile app's public name.
 Name: Properties of the app "D":
 Name				D
