@@ -37,12 +37,11 @@ func (n *newCmd) curlCommand(e *parsecli.Env, app *parsecli.App) string {
  -H "X-Parse-REST-API-Key: %s" \
  -H "Content-Type: application/json" \
  -d %s \
- %s/1/functions/hello
+ https://parseapi.back4app.com/functions/hello
 `,
 		app.ApplicationID,
 		app.RestKey,
 		strconv.Quote(args),
-		e.Server,
 	)
 }
 
@@ -60,7 +59,7 @@ you can test that it works, with the printed curl command.
 Next, you might want to deploy this code with:
 
 	cd %s
-	parse deploy
+	back4app deploy
 
 Once deployed you can test that it works by running:
 %s
@@ -112,7 +111,7 @@ and select the app you just created.`
 		return "", stackerr.Newf(
 			`Sorry, we are unable to create Cloud Code at %s.
 It seems that you already have Cloud Code at %s.
-Please run "parse new" again.
+Please run "back4app new" again.
 %s
 Please choose a different name for your Cloud Code directory,
 so it does not conflict with any other Cloud Code in the current directory.
@@ -131,7 +130,7 @@ so it does not conflict with any other Cloud Code in the current directory.
 		}
 		return "", stackerr.Newf(`Sorry, we are unable to create Cloud Code at %s.
 In the current directory a %s named: %q already exists.
-Please run "parse new" again.
+Please run "back4app new" again.
 %s
 Please choose a different name for your Cloud Code directory,
 so it does not conflict with any other Cloud Code in the current directory.
