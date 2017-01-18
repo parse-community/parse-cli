@@ -59,7 +59,7 @@ you can test that it works, with the printed curl command.
 Next, you might want to deploy this code with:
 
 	cd %s
-	back4app deploy
+	b4a deploy
 
 Once deployed you can test that it works by running:
 %s
@@ -111,7 +111,7 @@ and select the app you just created.`
 		return "", stackerr.Newf(
 			`Sorry, we are unable to create Cloud Code at %s.
 It seems that you already have Cloud Code at %s.
-Please run "back4app new" again.
+Please run "b4a new" again.
 %s
 Please choose a different name for your Cloud Code directory,
 so it does not conflict with any other Cloud Code in the current directory.
@@ -130,7 +130,7 @@ so it does not conflict with any other Cloud Code in the current directory.
 		}
 		return "", stackerr.Newf(`Sorry, we are unable to create Cloud Code at %s.
 In the current directory a %s named: %q already exists.
-Please run "back4app new" again.
+Please run "b4a new" again.
 %s
 Please choose a different name for your Cloud Code directory,
 so it does not conflict with any other Cloud Code in the current directory.
@@ -204,7 +204,7 @@ Please refrain from creating a Parse project inside another Parse project.
 	if nonInteractive {
 		cloudCodeDir = n.codeLocation
 	} else if n.configOnly {
-		cloudCodeDir = "" // ensures that "back4app new --init" inits the current directory
+		cloudCodeDir = "" // ensures that "b4a new --init" inits the current directory
 	} else {
 		cloudCodeDir, err = n.getCloudCodeDir(e, name, isNew)
 		if err != nil {

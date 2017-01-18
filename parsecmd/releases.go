@@ -52,7 +52,7 @@ func (r *releasesCmd) printFiles(version string,
 	}
 	if files == "" {
 		return stackerr.Newf(`Unable to fetch files for release version: %s
-Note that you can list files for all releases shown in "back4app releases"`,
+Note that you can list files for all releases shown in "b4a releases"`,
 			version)
 	}
 	var versionFileNames userFiles

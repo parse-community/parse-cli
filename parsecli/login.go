@@ -258,7 +258,7 @@ To save time logging in, you should create an account key.
 
 			fmt.Fprintln(
 				e.Out,
-				`Type "back4app configure accountkey" to create a new account key.
+				`Type "b4a configure accountkey" to create a new account key.
 Read more at: https://parse.com/docs/cloudcode/guide#command-line-account-keys`)
 			return "", stackerr.New("Account key not configured")
 		}
@@ -288,7 +288,7 @@ func (l *Login) AuthUser(e *Env, strict bool) error {
 	if !stackerr.HasUnderlying(err, stackerr.MatcherFunc(accountKeyNotConfigured)) {
 		fmt.Fprintln(
 			e.Out,
-			`Type "back4app configure accountkey" to create a new account key.
+			`Type "b4a configure accountkey" to create a new account key.
 Read more at: https://parse.com/docs/cloudcode/guide#command-line-account-keys
 
 Please login to Back4App using your email and password.`,

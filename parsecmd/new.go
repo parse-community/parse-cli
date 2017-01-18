@@ -35,7 +35,7 @@ func CloneSampleCloudCode(
 					e.Out,
 					`
 NOTE: If you like to fetch the latest deployed Cloud Code from Parse,
-you can use the "back4app download" command after finishing the set up.
+you can use the "b4a download" command after finishing the set up.
 This will download Cloud Code to a temporary location.
 `,
 				)

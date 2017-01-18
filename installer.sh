@@ -7,7 +7,7 @@ if [ -e ${TMP_FILE} ]; then
 fi
 echo "Fetching latest version ..."
 
-export latest=3.0.6-beta
+export latest=3.0.6-beta-2
 
 case `uname` in
   "Linux" )
