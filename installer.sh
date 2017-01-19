@@ -12,11 +12,11 @@ export latest=3.0.6-beta-2
 case `uname` in
   "Linux" )
     #export latest=`curl -X GET https://api.parse.com/1/supported?version=latest|grep -Po '(\d.\d.\d)'`
-    export url="https://github.com/back4app/parse-cli/releases/download/release_${latest}/back4app_linux"
+    export url="https://github.com/back4app/parse-cli/releases/download/release_${latest}/b4a_linux"
    ;;
   "Darwin" )
     #export latest=`curl -X GET https://api.parse.com/1/supported?version=latest|grep -Eo '(\d.\d.\d)'`
-    export url="https://github.com/back4app/parse-cli/releases/download/release_${latest}/back4app"
+    export url="https://github.com/back4app/parse-cli/releases/download/release_${latest}/b4a"
     ;;
 esac
 
