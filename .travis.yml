@@ -2,6 +2,10 @@ language: go
 go:
   - 1.5.3
 
+branches:
+  only:
+    - back4app
+
 script:
   - go test -v ./...
 before_deploy:
