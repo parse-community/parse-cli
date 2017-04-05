@@ -48,3 +48,7 @@ The following commands are currently available in the `Parse Command Line Tool`:
   version     Gets the Command Line Tools version
   help        Help about any command
 ```
+
+-----
+
+As of April 5, 2017, Parse, LLC has transferred this code to the parse-community organization, and will no longer be contributing to or distributing this code.
