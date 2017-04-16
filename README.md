@@ -1,6 +1,6 @@
 Parse Command Line Tool
 =======
-[![Build Status](https://travis-ci.org/ParsePlatform/parse-cli.svg?branch=master)](https://travis-ci.org/ParsePlatform/parse-cli)
+[![Build Status](https://travis-ci.org/back4app/parse-cli.svg?branch=back4app)](https://travis-ci.org/back4app/parse-cli)
 
 The `Parse Command Line Tool` allows you to set up your Parse app's server-side code from the terminal.
 You can deploy your server-side code to either Parse Cloud Code or Heroku Node.js.

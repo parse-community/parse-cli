@@ -137,6 +137,7 @@ func TestNewCmdContent(t *testing.T) {
 func TestCurlCommand(t *testing.T) {
 	t.Parallel()
 	h := parsecli.NewHarness(t)
+	h.Env.Server = "https://api.parse.com"
 	defer h.Stop()
 
 	n := &newCmd{}
@@ -148,7 +149,7 @@ func TestCurlCommand(t *testing.T) {
  -H "X-Parse-REST-API-Key: RestKey" \
  -H "Content-Type: application/json" \
  -d "{}" \
- https://api.parse.com/1/functions/hello
+ https://parseapi.back4app.com/functions/hello
 `)
 }
 

@@ -37,5 +37,5 @@ func TestLatestVersion(t *testing.T) {
 
 	downloadURL, err := u.getDownloadURL(h.Env)
 	ensure.StringContains(t,
-		downloadURL, "https://github.com/ParsePlatform/parse-cli/releases/download/release_2.0.2")
+		downloadURL, "https://github.com/back4app/parse-cli/releases/download/release_2.0.2")
 }

@@ -22,10 +22,10 @@ import (
 )
 
 const (
-	Version        = "3.0.5"
+	Version        = "3.0.6-beta-3"
 	CloudDir       = "cloud"
 	HostingDir     = "public"
-	DefaultBaseURL = "https://api.parse.com/1/"
+	DefaultBaseURL = "https://parsecli.back4app.com/"
 )
 
 var UserAgent = fmt.Sprintf("parse-cli-%s-%s", runtime.GOOS, Version)
