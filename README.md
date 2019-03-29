@@ -5,16 +5,12 @@ Parse Command Line Tool
 The `Parse Command Line Tool` allows you to set up your Parse app's server-side code from the terminal.
 You can deploy your server-side code to either Parse Cloud Code or Heroku Node.js.
 
-To learn more, please visit our [docs](https://parse.com/docs/cloudcode/guide).
-
 Overview
 --------
 Parse Command Line Tool can be used to perform various actions on your Parse app.
 It can be used to create new Parse apps, deploy Cloud Code to an app, view all releases for an app, etc.
 
-You can install `Parse Command Line Tool` by following instructions at [parse-cli](https://parse.com/apps/quickstart#cloud_code/).
-
-Alternatively, you can just type the following command.
+To install `Parse Command Line Tool`, you can just type the following command.
 
 NOTE: You should already have [Go](https://golang.org/doc/install) installed and GOPATH, GOROOT set to appropriate values.
 
