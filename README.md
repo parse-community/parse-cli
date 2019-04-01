@@ -2,10 +2,10 @@ Parse Command Line Tool
 =======
 [![Build Status](https://travis-ci.org/parse-community/parse-cli.svg?branch=master)](https://travis-ci.org/parse-community/parse-cli)
 [![Join The Conversation](https://img.shields.io/discourse/https/community.parseplatform.org/topics.svg)](https://community.parseplatform.org/c/parse-server)
-[![Backers on Open Collective](https://opencollective.com/parse-server/backers/badge.svg)](#backers)
-[![Sponsors on Open Collective](https://opencollective.com/parse-server/sponsors/badge.svg)](#sponsors)
+[![Backers on Open Collective](https://opencollective.com/parse-server/backers/badge.svg)][open-collective-link]
+[![Sponsors on Open Collective](https://opencollective.com/parse-server/sponsors/badge.svg)][open-collective-link]
 [![License][license-svg]][license-link]
-![Twitter Follow](https://img.shields.io/twitter/follow/ParsePlatform.svg?label=Follow%20us%20on%20Twitter&style=social)
+[![Twitter Follow](https://img.shields.io/twitter/follow/ParsePlatform.svg?label=Follow%20us%20on%20Twitter&style=social)](https://twitter.com/intent/follow?screen_name=ParsePlatform)
 
 The `Parse Command Line Tool` allows you to set up your Parse app's server-side code from the terminal.
 You can deploy your server-side code to either Parse Cloud Code or Heroku Node.js.
@@ -56,4 +56,4 @@ As of April 5, 2017, Parse, LLC has transferred this code to the parse-community
 
 [license-svg]: https://img.shields.io/badge/license-BSD-lightgrey.svg
 [license-link]: LICENSE
-
+[open-collective-link]: https://opencollective.com/parse-server
